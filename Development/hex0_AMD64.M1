@@ -1,4 +1,5 @@
 ## Copyright (C) 2017 Jeremiah Orians
+## Copyright (C) 2022 Andrius Štikonas <andrius@stikonas.eu>
 ## This file is part of stage0.
 ##
 ## stage0 is free software: you can redistribute it and/or modify
@@ -14,49 +15,45 @@
 ## You should have received a copy of the GNU General Public License
 ## along with stage0.  If not, see <http://www.gnu.org/licenses/>.
 
-DEFINE ADD_RAX_R14 4C01F0
+DEFINE ADD_EAX_EBP 01E8
 DEFINE CALLI32 E8
-DEFINE CMP_RAX_Immediate8 4883F8
+DEFINE CMPI8_AL 3C
+DEFINE COPY_EBP_EAX 89C5
 DEFINE COPY_R9_to_RDI 4C89CF
 DEFINE COPY_R10_to_RDI 4C89D7
 DEFINE COPY_RAX_to_R9 4989C1
 DEFINE COPY_RAX_to_R10 4989C2
 DEFINE COPY_RSP_to_RSI 4889E6
+DEFINE DEC_EBX FFCB
 DEFINE JE32 0F84
 DEFINE JE8 74
 DEFINE JGE8 7D
 DEFINE JL32 0F8C
 DEFINE JL8 7C
-DEFINE JMP32 E9
 DEFINE JMP8 EB
-DEFINE JNE32 0F85
 DEFINE JNE8 75
-DEFINE LOADI32_EDX BA
-DEFINE LOADI32_ESI BE
-DEFINE MOVE_R14_RAX 4989C6
+DEFINE LOADI16_DX 66BA
+DEFINE LOADI16_SI 66BE
 DEFINE NULL 00000000
 DEFINE POP_RAX 58
 DEFINE POP_RBX 5B
 DEFINE POP_RDI 5F
 DEFINE POP_RDX 5A
-DEFINE POP_R15 415F
-DEFINE PUSH_-1 6AFF
-DEFINE PUSH_1 6A01
-DEFINE PUSH_2 6A02
-DEFINE PUSH_60 6A3C
+DEFINE PUSH 6A
 DEFINE PUSH_RAX 50
 DEFINE PUSH_RBX 53
+DEFINE PUSH_RDI 57
 DEFINE RET C3
-DEFINE SHL_R14_Immediate8 49C1E6
-DEFINE SUB_RAX_Immediate8 4883E8
+DEFINE SHL_EBP_Immediate8 C1E5
+DEFINE SUBI8_AL 2C
 DEFINE SYSCALL 0F05
-DEFINE TEST_RAX_RAX 4885C0
-DEFINE TEST_R15_R15 4D85FF
+DEFINE TEST_EBX_EBX 85DB
+DEFINE TEST_EAX_EAX 85C0
 DEFINE XOR_EAX_EAX 31C0
-DEFINE XOR_ESI_ESI 31F6
+DEFINE XOR_EBX_EBX 31DB
+DEFINE XOR_EBP_EBP 31ED
 DEFINE XOR_EDI_EDI 31FF
-DEFINE XOR_R14D_R14D 4531F6
-DEFINE XOR_R15D_R15D 4531FF
+DEFINE XOR_ESI_ESI 31F6
 
 # Where the ELF Header is going to hit
 # Simply jump to _start
@@ -66,25 +63,25 @@ DEFINE XOR_R15D_R15D 4531FF
 	POP_RDI                     # Get the program name
 	POP_RDI                     # Get the actual input name
 	XOR_ESI_ESI                 # prepare read_only, rsi = 0
-	PUSH_2                      # prepare syscall number
+	PUSH !2                     # prepare syscall number
 	POP_RAX                     # the syscall number for open()
 	SYSCALL                     # Now open that damn file
 	COPY_RAX_to_R9              # Preserve the file pointer we were given
 
 	POP_RDI                     # Get the actual output name
-	LOADI32_ESI %577            # Prepare file as O_WRONLY|O_CREAT|O_TRUNC
-	LOADI32_EDX %448            # Prepare file as RWX for owner only (700 in octal)
-	PUSH_2                      # prepare syscall number
+	LOADI16_SI @577             # Prepare file as O_WRONLY|O_CREAT|O_TRUNC
+	LOADI16_DX @448             # Prepare file as RWX for owner only (700 in octal)
+	PUSH !2                     # prepare syscall number
 	POP_RAX                     # the syscall number for open()
 	SYSCALL                     # Now open that damn file
 	COPY_RAX_to_R10             # Preserve the file pointer we were given
 
 	# Our flag for byte processing
-	PUSH_-1
-	POP_R15                     # r15 = -1
+	PUSH !-1
+	POP_RBX                     # rbx = -1
 
 	# temp storage for the sum
-	XOR_R14D_R14D               # r14 = 0
+	XOR_EBP_EBP                 # rbp = 0
 
 :loop
 	# Read a byte
@@ -94,27 +91,26 @@ DEFINE XOR_R15D_R15D 4531FF
 	CALLI32 %hex
 
 	# deal with -1 values
-	TEST_RAX_RAX
+	TEST_EAX_EAX
 	JL8 !loop
 
 	# deal with toggle
-	TEST_R15_R15                # jump if r15 >= 0
+	TEST_EBX_EBX                # jump if rbx >= 0
 	JGE8 !print
 
 	# process first byte of pair
-	MOVE_R14_RAX
-	XOR_R15D_R15D               # r15 = 0
+	COPY_EBP_EAX
+	XOR_EBX_EBX                 # rbx = 0
 	JMP8 !loop
 
 # process second byte of pair
 :print
 	# update the sum and store in output
-	SHL_R14_Immediate8 !4
-	ADD_RAX_R14
+	SHL_EBP_Immediate8 !4
+	ADD_EAX_EBP
 
 	# flip the toggle
-	PUSH_-1
-	POP_R15                     # r15 = -1
+	DEC_EBX                     # rbx = -1
 
 	CALLI32 %write_byte
 
@@ -122,35 +118,35 @@ DEFINE XOR_R15D_R15D 4531FF
 
 :hex
 	# Purge Comment Lines (#)
-	CMP_RAX_Immediate8 !35
+	CMPI8_AL !35
 	JE8 !purge_comment
 
 	# Purge Comment Lines (;)
-	CMP_RAX_Immediate8 !59
+	CMPI8_AL !59
 	JE8 !purge_comment
 
 	# deal all ascii less than '0'
-	CMP_RAX_Immediate8 !48
+	CMPI8_AL !48
 	JL8 !ascii_other
 
 	# deal with 0-9
-	CMP_RAX_Immediate8 !58
+	CMPI8_AL !58
 	JL8 !ascii_num
 
 	# deal with all ascii less than 'A'
-	CMP_RAX_Immediate8 !65
+	CMPI8_AL !65
 	JL8 !ascii_other
 
 	# deal with 'A'-'F'
-	CMP_RAX_Immediate8 !71
+	CMPI8_AL !71
 	JL8 !ascii_high
 
 	# deal with all ascii less than 'a'
-	CMP_RAX_Immediate8 !97
+	CMPI8_AL !97
 	JL8 !ascii_other
 
 	#deal with 'a'-'f'
-	CMP_RAX_Immediate8 !103
+	CMPI8_AL !103
 	JL8 !ascii_low
 
 	# The rest that remains needs to be ignored
@@ -161,67 +157,63 @@ DEFINE XOR_R15D_R15D 4531FF
 	CALLI32 %read_byte
 
 	# Loop if not LF
-	CMP_RAX_Immediate8 !10
+	CMPI8_AL !10
 	JNE8 !purge_comment
 
 	# Otherwise return -1
-	PUSH_-1
-	POP_RAX                     # rax = -1
+
+:ascii_other
+	PUSH !-1
+	POP_RAX                     # return = -1
 	RET
 
 :ascii_num
-	SUB_RAX_Immediate8 !48
+	SUBI8_AL !48
 	RET
 
 :ascii_low
-	SUB_RAX_Immediate8 !87
-	RET
+	SUBI8_AL !32
 
 :ascii_high
-	SUB_RAX_Immediate8 !55
+	SUBI8_AL !55
 	RET
-
-:ascii_other
-	PUSH_-1
-	POP_RAX                     # rax = -1
-	RET
-
-:Done
-	# program completed Successfully
-	XOR_EDI_EDI                 # All is well, rdi = 0
-	PUSH_60                     # sycall number for exit is 60
-	POP_RAX                     # put the exit syscall number in rax
-	SYSCALL                     # Call it a good day
 
 # Writes byte stored in al
 :write_byte
 	# Print our Hex
-	PUSH_1                      # prepare to set rdx to 1
+	PUSH !1                     # prepare to set rdx to 1
 	POP_RDX                     # set the size of chars we want
 	PUSH_RAX                    # Move output to stack
 	COPY_RSP_to_RSI             # What we are writing
 	COPY_R10_to_RDI             # Where are we writing to
-	PUSH_1                      # prepare syscall number for write
+	PUSH !1                     # prepare syscall number for write
 	POP_RAX                     # get the syscall number for write
 	SYSCALL                     # call the Kernel
-	POP_RBX                     # deallocate stack
+	POP_RDI                     # deallocate stack
 	RET
 
 :read_byte
 	# Attempt to read 1 byte from STDIN
-	PUSH_1                      # prepare to set rdx to 1
+	PUSH !1                     # prepare to set rdx to 1
 	POP_RDX                     # set the size of chars we want
-	PUSH_RBX                    # allocate stack
+	PUSH_RDI                    # allocate stack
 	COPY_RSP_to_RSI             # Where to put it
 	COPY_R9_to_RDI              # Where are we reading from
 	XOR_EAX_EAX                 # the syscall number for read, rax = 0
 	SYSCALL                     # call the Kernel
 
-	TEST_RAX_RAX                # check what we got
+	TEST_EAX_EAX                # check what we got
 	JE8 !Done                   # Got EOF call it done
 
 	# load byte
 	POP_RAX                     # load char
 	RET
+
+:Done
+	# program completed Successfully
+	XOR_EDI_EDI                 # All is well, rdi = 0
+	PUSH !60                    # sycall number for exit is 60
+	POP_RAX                     # put the exit syscall number in rax
+	SYSCALL                     # Call it a good day
 
 :ELF_end
