@@ -19,53 +19,54 @@
 ### M1 or hex2 files.
 
 ## ELF Header
-# :ELF_base
-	7F 45 4C 46                 ## e_ident[EI_MAG0-3] ELF's magic number
 
-	02                          ## e_ident[EI_CLASS] Indicating 64 bit
-	01                          ## e_ident[EI_DATA] Indicating little endianness
-	01                          ## e_ident[EI_VERSION] Indicating original elf
+:ELF_base
+7F 45 4C 46        ## e_ident[EI_MAG0-3] ELF's magic number
 
-	03                          ## e_ident[EI_OSABI] Set at 3 because FreeBSD is strict
-	00                          ## e_ident[EI_ABIVERSION] Set at 0 because none cares
+02                 ## e_ident[EI_CLASS] Indicating 64 bit
+01                 ## e_ident[EI_DATA] Indicating little endianness
+01                 ## e_ident[EI_VERSION] Indicating original elf
 
-	00 00 00 00 00 00 00        ## e_ident[EI_PAD]
-	02 00                       ## e_type Indicating Executable
-	3E 00                       ## e_machine Indicating AMD64
-	01 00 00 00                 ## e_version Indicating original elf
+03                 ## e_ident[EI_OSABI] Set at 3 because FreeBSD is strict
+00                 ## e_ident[EI_ABIVERSION] Set at 0 because none cares
 
-	78 00 60 00 00 00 00 00     ## e_entry Address of the entry point (Number of bytes this header is + Base Address)
-	40 00 00 00 00 00 00 00     ## e_phoff Address of program header table
-	00 00 00 00 00 00 00 00     ## e_shoff Address of section header table
+00 00 00 00 00 00 00 ## e_ident[EI_PAD]
+02 00              ## e_type Indicating Executable
+3E 00              ## e_machine Indicating AMD64
+01 00 00 00        ## e_version Indicating original elf
 
-	00 00 00 00                 ## e_flags
-	40 00                       ## e_ehsize Indicating our 64 Byte header
+&_start 00 00 00 00 ## e_entry Address of the entry point (Number of bytes this header is + Base Address)
+%ELF_program_headers>ELF_base 00 00 00 00 ## e_phoff Address of program header table
+00 00 00 00 00 00 00 00 ## e_shoff Address of section header table
 
-	38 00                       ## e_phentsize size of a program header table
-	01 00                       ## e_phnum number of entries in program table
+00 00 00 00        ## e_flags
+40 00              ## e_ehsize Indicating our 64 Byte header
 
-	00 00                       ## e_shentsize size of a section header table
-	00 00                       ## e_shnum number of entries in section table
+38 00              ## e_phentsize size of a program header table
+01 00              ## e_phnum number of entries in program table
 
-	00 00                       ## e_shstrndx index of the section names
+00 00              ## e_shentsize size of a section header table
+00 00              ## e_shnum number of entries in section table
+
+00 00              ## e_shstrndx index of the section names
 
 ## Program Header
-# :ELF_program_headers
-	01 00 00 00                 ## p_type
-	07 00 00 00                 ## ph_flags: PF-X|PF-W|PF-R = 7
-	00 00 00 00 00 00 00 00     ## p_offset
+:ELF_program_headers
+01 00 00 00             ## p_type
+07 00 00 00             ## ph_flags: PF-X|PF-W|PF-R = 7
+00 00 00 00 00 00 00 00 ## p_offset
 
-	00 00 60 00 00 00 00 00     ## p_vaddr
-	00 00 60 00 00 00 00 00     ## p_physaddr
+&ELF_base 00 00 00 00 ## p_vaddr
+&ELF_base 00 00 00 00 ## p_physaddr
 
-	1D 01 00 00 00 00 00 00     ## p_filesz
-	1D 01 00 00 00 00 00 00     ## p_memsz
+%ELF_end>ELF_base 00 00 00 00 ## p_filesz
+%ELF_end>ELF_base 00 00 00 00 ## p_memsz
 
-	01 00 00 00 00 00 00 00     ## Required alignment
+01 00 00 00 00 00 00 00 ## Required alignment
 
-# :ELF_text
+:ELF_text
 
-# :_start
+:_start
 	58                          # POP_RAX                     ; Get the number of arguments
 	5F                          # POP_RDI                     ; Get the program name
 	5F                          # POP_RDI                     ; Get the actual output name
@@ -85,17 +86,17 @@
 	4881C7 00001000             # ADDI32_to_RDI %0x100000     ; Allocate 1MB
 	0F05                        # SYSCALL                     ; Let the kernel do the work
 
-# :core
+:core
 	5F                          # POP_RDI                     ; Get the actual input name
 	4883FF 00                   # CMP_RDI_Immediate8 !0       ; Check for null string
-	0F84 4F000000               # JE32 %done                  ; Hit null be done
+	0F84 %done                  # JE32 %done                  ; Hit null be done
 
 	BE 00000000                 # LOADI32_RSI %0              ; prepare read_only
 	BA 00000000                 # LOADI32_RDX %0              ; prevent any interactions
 	48C7C0 02000000             # LOADI32_RAX %2              ; the syscall number for open()
 	0F05                        # SYSCALL                     ; Now open that damn file
 	4989C5                      # COPY_RAX_to_R13             ; Protect INPUT
-# :keep
+:keep
 	BA 00001000                 # LOADI32_RDX %0x100000       ; set the size of chars we want
 	4C89F6                      # COPY_R14_to_RSI             ; Where to put it
 	4C89EF                      # COPY_R13_to_RDI             ; Where are we reading from
@@ -111,13 +112,13 @@
 
 	58                          # POP_RAX                     ; Get bytes read
 	483D 00001000               # CMP_RAX_Immediate32 %0x100000 ; Check if buffer was fully used
-	0F84 CCFFFFFF               # JE32 %keep                  ; Keep looping if was full
-	E9 A6FFFFFF                 # JMP32 %core                 ; Otherwise move to next file
+	0F84 %keep                  # JE32 %keep                  ; Keep looping if was full
+	E9 %core                    # JMP32 %core                 ; Otherwise move to next file
 
-# :done
+:done
 	; program completed Successfully
 	BF 00000000                 # LOADI32_RDI %0              ; All is well
 	48C7C0 3C000000             # LOADI32_RAX %0x3C           ; put the exit syscall number in eax
 	0F05                        # SYSCALL                     ; Call it a good day
 
-# :ELF_end
+:ELF_end
