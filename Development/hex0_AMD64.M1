@@ -172,7 +172,7 @@ DEFINE XOR_ESI_ESI 31F6
 	RET
 
 :ascii_low
-	SUBI8_AL !32
+	SUBI8_AL !32                # convert to uppercase
 
 :ascii_high
 	SUBI8_AL !55

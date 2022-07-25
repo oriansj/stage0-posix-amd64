@@ -27,7 +27,7 @@ _start:
 	cmp rdi, 0                  ; Check for missing output
 	jne _start_out              ; Have real input
 	push rax                    ; Need to adjust stack
-	mov rdi, default_file       ; Use "kaem.run"
+	mov rdi, default_file       ; Use "kaem.amd64"
 
 _start_out:
 	mov rsi, 0                  ; prepare read_only
