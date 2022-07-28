@@ -1,4 +1,5 @@
 ;; Copyright (C) 2020 Jeremiah Orians
+;; Copyright (C) 2022 Andrius Štikonas
 ;; This file is part of stage0.
 ;;
 ;; stage0 is free software: you can redistribute it and/or modify
@@ -20,31 +21,39 @@
 ; Where the ELF Header is going to hit
 ; Simply jump to _start
 ; Our main function
+
+; Register usage
+; * R13 script
+; * R14 MALLOC
+; * R15 command_done
+
 _start:
 	pop rax                     ; Get the number of arguments
 	pop rdi                     ; Get the program name
 	pop rdi                     ; Get the actual input name
-	cmp rdi, 0                  ; Check for missing output
+	test edi, edi               ; Check for missing output
 	jne _start_out              ; Have real input
 	push rax                    ; Need to adjust stack
 	mov rdi, default_file       ; Use "kaem.amd64"
 
 _start_out:
-	mov rsi, 0                  ; prepare read_only
-	mov rax, 2                  ; the syscall number for open()
+	xor esi, esi                ; prepare read_only
+	push 2
+	pop rax                     ; the syscall number for open()
 	syscall                     ; Now open that damn file
 
-	cmp rax, 0                  ; IF NULL We couldn't open the file
+	test eax, eax               ; IF NULL We couldn't open the file
 	jle Exit_Failure            ; Abort hard
-	mov [script], rax           ; Set input pointer
+	mov r13, rax                ; Set input pointer
 
 	pop rax                     ; Get start of envp
 	mov rbp, rsp                ; Protect envp
 
-	mov rax, 12                 ; the Syscall # for SYS_BRK
-	mov rdi, 0                  ; Get current brk
+	push 12
+	pop rax                     ; the Syscall # for SYS_BRK
+	xor edi, edi                ; Get current brk
 	syscall                     ; Let the kernel do the work
-	mov [MALLOC], rax           ; Set our malloc pointer
+	mov r14, rax                ; Set our malloc pointer
 
 	;; Where the main work gets done
 	;; Using RDI for tokens and RSI for tokens[i]
@@ -54,22 +63,21 @@ main_loop:
 	mov rdi, rax                ; set tokens
 
 	mov rsi, rdi                ; I = 0
-	mov rax, 0                  ; Using 0
+	xor eax, eax                ; Using 0
 	mov [status], rax           ; status = 0
-	mov [command_done], rax     ; command_done = 0
+	xor r15, r15                ; command_done = 0
 
 	;; Using RAX for result and RDI for tokens[i]
 collect_command:
 	call collect_token          ; Get another token
-	cmp rax, 0                  ; if NULL == result
+	test eax, eax               ; if NULL == result
 	je collect_command_comment  ; It is a comment, don't store
 
 	mov [rsi], rax              ; tokens[i] = result
 	add rsi, 8                  ; i = i + 1 (adjusted for char* size)
 
 collect_command_comment:
-	mov rax, [command_done]     ; Using command_done
-	cmp rax, 0                  ; IF 0 == command_done
+	test r15, r15               ; IF 0 == command_done
 	je collect_command          ; keep looping
 
 	;; Deal with line comments
@@ -78,20 +86,22 @@ collect_command_comment:
 
 	call print_command          ; print the command
 	mov rax, [rdi]              ; program = tokens[0]
-	cmp rax, 0                  ; IF NULL == program
+	test eax, eax               ; IF NULL == program
 	je Exit_Failure             ; Some shit went down, abort
 
 	push rdi                    ; Protect Tokens
-	mov rax, 57                 ; FORKing
+	push 57
+	pop rax                     ; FORKing
 	syscall                     ; int f = FORK()
 	pop rdi                     ; Restore Tokens
 
-	cmp rax, 0                  ; Check fork
+	test eax, eax               ; Check fork
 	jl Exit_Failure             ; IF f == -1 abort hard
 	jne collect_command_parent  ; IF f == 0 it is child
 
 	;; Deal with child case
-	mov rax, 59                 ; EXECVE
+	push 59
+	pop rax                     ; EXECVE
 	mov rdx, rbp                ; third arg = envp
 	mov rsi, rdi                ; second arg = tokens
 	mov rdi, [rdi]              ; program = tokens[0]
@@ -101,12 +111,13 @@ collect_command_comment:
 collect_command_parent:
 	mov rdi, rax                ; first arg = f
 	mov rsi, status             ; second arg = &status
-	mov rdx, 0                  ; third arg = NULL
-	mov rax, 61                 ; WAITPID
+	xor edx, edx                ; third arg = NULL
+	push 61
+	pop rax                     ; WAITPID
 	syscall                     ; wait4pid(f, &status, 0, 0); [r10 = 0]
 
 	mov rax, [status]           ; Using status
-	cmp rax, 0                  ; IF 0 == status
+	test eax, eax               ; IF 0 == status
 	je main_loop                ; Loop forever
 
 	;; Deal with very unhappy case
@@ -118,13 +129,21 @@ collect_command_parent:
 ;; And aborts hard
 ;; DOES NOT RETURN
 Exit_Failure:
-	mov rdi, 1                  ; All is wrong
-	mov rax, 60                 ; put the exit syscall number in rax
+	push 1
+	pop rdi                     ; All is wrong
+	push 60
+	pop rax                     ; put the exit syscall number in rax
 	syscall                     ; Call it a bad day
 
+Done:
+	; program completed Successfully
+	xor edi, edi                ; All is well
+	push 60
+	pop rax                     ; put the exit syscall number in rax
+	syscall                     ; Call it a good day
 
 ;; print_command function
-;; Recieves tokens[j] in RDI and tokens[i] in RSI
+;; Receives tokens[j] in RDI and tokens[i] in RSI
 ;; Modifies RAX
 print_command:
 	push rdi                    ; Protect RDI
@@ -134,19 +153,21 @@ print_command_loop:
 	mov rax, [rdi]              ; using tokens[j]
 	call File_Print             ; print it
 	add rdi, 8                  ; j = j + 1
-	mov rax, 32                 ; using ' '
+	push 32
+	pop rax                     ; using ' '
 	call fputc                  ; print it
 	cmp rdi, rsi                ; IF j < i
 	jne print_command_loop      ; otherwise keep looping
 
-	mov rax, 10                 ; using '\n'
+	push 10
+	pop rax                     ; using '\n'
 	call fputc                  ; print it
 	pop rdi                     ; Restore RDI
 	ret
 
 
 ;; collect_token function
-;; Recieves nothing
+;; Receives nothing
 ;; Overwrites RAX
 ;; Uses RAX as C, RDI as token and RSI as token[i]
 collect_token:
@@ -159,25 +180,23 @@ collect_token:
 
 collect_token_loop:
 	call fgetc                  ; c = fgetc(input);
-	cmp rax, -4                 ; if C == EOF
+	cmp al, -4                  ; if C == EOF
 	je Done                     ; We are done
 
-	cmp rax, 32                 ; IF C == ' '
+	cmp al, 32                  ; IF C == ' '
 	je collect_token_done       ; Space terminates token
 
-	cmp rax, 9                  ; IF C == '\t'
+	cmp al, 9                   ; IF C == '\t'
 	je collect_token_done       ; tab terminates token
 
-	cmp rax, 10                 ; IF C == '\n'
+	cmp al, 10                  ; IF C == '\n'
 	jne collect_token_string    ; otherwise check next
 
 	;; It is a newline
-	mov rax, 1                  ; Using 1
-	mov [command_done], rax     ; Set command_done = TRUE
-	jmp collect_token_done      ; Be done
+	jmp collect_token_set_command_done ; Set command_done = TRUE
 
 collect_token_string:
-	cmp rax, 34                 ; IF C == '"'
+	cmp al, 34                  ; IF C == '"'
 	jne collect_token_comment   ; otherwise check next
 
 	;; It is a RAW STRING
@@ -185,17 +204,18 @@ collect_token_string:
 	jmp collect_token_done      ; Be done
 
 collect_token_comment:
-	cmp rax, 35                 ; IF C == '#'
+	cmp al, 35                  ; IF C == '#'
 	jne collect_token_escape    ; otherwise check next
 
 	;; It is a line comment
-	call collect_comment        ; Read it all
-	mov rax, 1                  ; Using 1
-	mov [command_done], rax     ; Set command_done = TRUE
+	call collect_comment        ; Read it all\
+collect_token_set_command_done:
+	push 1
+	pop r15                     ; Set command_done = TRUE
 	jmp collect_token_done      ; Be done
 
 collect_token_escape:
-	cmp rax, 92                 ; IF C == '\\'
+	cmp al, 92                  ; IF C == '\\'
 	jne collect_token_other     ; otherwise just store it
 
 	;; It is an escape char
@@ -210,7 +230,7 @@ collect_token_other:
 collect_token_done:
 	cmp rdi, rsi                ; IF i == 0
 	jne collect_token_good      ; otherwise return the token
-	mov rdi, 0                  ; token = NULL
+	xor edi, edi                ; token = NULL
 
 collect_token_good:
 	mov rax, rdi                ; Return token
@@ -220,15 +240,15 @@ collect_token_good:
 
 
 ;; collect_string function
-;; Recieves target[index] in RSI
+;; Receives target[index] in RSI
 ;; Modifies RAX
 ;; Uses RAX as C
 collect_string:
 	call fgetc                  ; C = fgetc(input)
-	cmp rax, -4                 ; if C == EOF
-	je Exit_Failure             ; Something went horriably wrong
+	cmp al, -4                  ; if C == EOF
+	je Exit_Failure             ; Something went horribly wrong
 
-	cmp rax, 34                 ; IF C == '"'
+	cmp al, 34                  ; IF C == '"'
 	je collect_string_done      ; be done
 
 	;; deal with inside of string
@@ -241,16 +261,16 @@ collect_string_done:
 
 
 ;; collect_comment function
-;; Recieves nothing
+;; Receives nothing
 ;; Modifies RAX
 ;; uses RAX as Int C
 ;; Just throws away everything it reads
 collect_comment:
 	call fgetc                  ; C = fgetc(input)
-	cmp rax, -4                 ; IF C == EOF
+	cmp al, -4                  ; IF C == EOF
 	je Exit_Failure             ; abort hard
 
-	cmp rax, 10                 ; IF C == '\n'
+	cmp al, 10                  ; IF C == '\n'
 	jne collect_comment         ; otherwise keep looping
 	ret
 
@@ -262,12 +282,13 @@ malloc:
 	push rdi                    ; Protect RDI
 	push rsi                    ; Protect RSI
 	push rdx                    ; Protect RDX
-	mov rdi, [MALLOC]           ; Using the current pointer
+	mov rdi, r14                ; Using the current pointer
 	add rdi, rax                ; Request the number of desired bytes
-	mov rax, 12                 ; the Syscall # for SYS_BRK
+	push 12
+	pop rax                     ; the Syscall # for SYS_BRK
 	syscall                     ; call the Kernel
-	mov rax, [MALLOC]           ; Return pointer
-	mov [MALLOC], rdi           ; Update pointer
+	mov rax, r14                ; Return pointer
+	mov r14, rdi                ; Update pointer
 	pop rdx                     ; Restore RDX
 	pop rsi                     ; Restore RSI
 	pop rdi                     ; Restore RDI
@@ -276,22 +297,23 @@ malloc:
 
 ;; fgetc function
 ;; Loads FILE* from [script]
-;; Returns -4 (EOF) or char in RAX
+;; Returns -4 (EOF) or char in AL
 fgetc:
 	push rdi                    ; Protect RDI
 	push rsi                    ; Protect RSI
 	push rdx                    ; Protect RDX
-	mov rax, -4                 ; Put EOF in rax
+	push -4
+	pop rax                     ; Put EOF in RAX
 	push rax                    ; Assume bad (If nothing read, value will remain EOF)
 	lea rsi, [rsp]              ; Get stack address
-	mov rdi, [script]           ; Where are we reading from
-	mov rax, 0                  ; the syscall number for read
-	mov rdx, 1                  ; set the size of chars we want
+	mov rdi, r13                ; Where are we reading from
+	xor eax, eax                ; the syscall number for read
+	push 1
+	pop rdx                     ; set the size of chars we want
 	syscall                     ; call the Kernel
 	pop rax                     ; Get either char or EOF
-	cmp rax, -4                 ; Check for EOF
+	cmp al, -4                  ; Check for EOF
 	je fgetc_done               ; Return as is
-	movzx rax, al               ; Make it useful
 fgetc_done:
 	pop rdx                     ; Restore RDX
 	pop rsi                     ; Restore RSI
@@ -306,12 +328,12 @@ File_Print:
 	push rdi                    ; Protect RDI
 	push rsi                    ; Protect RSI
 	mov rdi, rax                ; Protect S
-	cmp rax, 0                  ; Protect against nulls
+	test eax, eax               ; Protect against nulls
 	je File_Print_Done          ; Simply don't try to print them
 File_Print_Loop:
+	xor eax, eax                ; Zero RAX
 	mov al, [rdi]               ; Read byte
-	movzx rax, al               ; zero extend
-	cmp rax, 0                  ; Check for NULL
+	test eax, eax               ; Check for NULL
 	je File_Print_Done          ; Stop at NULL
 
 	call fputc                  ; write it
@@ -333,9 +355,10 @@ fputc:
 	push rdx                    ; Protect RDX
 	push rax                    ; We are writing rax
 	lea rsi, [rsp]              ; Get stack address
-	mov rdi, 1                  ; Write to target file
-	mov rax, 1                  ; the syscall number for write
-	mov rdx, 1                  ; set the size of chars we want
+	push 1
+	pop rdi                     ; Write to target file
+	mov rax, rdi                ; the syscall number for write
+	mov rdx, rdi                ; set the size of chars we want
 	syscall                     ; call the Kernel
 	pop rax                     ; Restore stack
 	pop rdx                     ; Restore RDX
@@ -344,21 +367,10 @@ fputc:
 	ret
 
 
-Done:
-	; program completed Successfully
-	mov rdi, 0                  ; All is well
-	mov rax, 60                 ; put the exit syscall number in rax
-	syscall                     ; Call it a good day
-
-
 section .data
 default_file: db "kaem.amd64", 0
 prefix: db " +> ", 0
 hard: db "Subprocess error", 10, "ABORTING HARD", 10, 0
-script: dq 0
-tokens: dq 0
-command_done: dq 0
 max_args: dq 2048               ; 256 * sizeof(char*)
 max_string: dq 4096             ; 4096 * sizeof(char)
-MALLOC: dq 0
 status: dq 0
