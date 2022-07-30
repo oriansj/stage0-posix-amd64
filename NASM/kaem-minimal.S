@@ -58,13 +58,12 @@ _start_out:
 	;; Where the main work gets done
 	;; Using RDI for tokens and RSI for tokens[i]
 main_loop:
-	mov rax, [max_args]         ; Using 256 char* of space
+	xor eax, eax                ; Zero RAX
+	mov ah, 0x8                 ; Using 256 char* of space (0x800)
 	call malloc                 ; get it
 	mov rdi, rax                ; set tokens
 
 	mov rsi, rdi                ; I = 0
-	xor eax, eax                ; Using 0
-	mov [status], rax           ; status = 0
 	xor r15, r15                ; command_done = 0
 
 	;; Using RAX for result and RDI for tokens[i]
@@ -106,23 +105,6 @@ collect_command_comment:
 	mov rsi, rdi                ; second arg = tokens
 	mov rdi, [rdi]              ; program = tokens[0]
 	syscall                     ; execve(program, tokens, envp);
-	jmp Exit_Failure            ; return error
-
-collect_command_parent:
-	mov rdi, rax                ; first arg = f
-	mov rsi, status             ; second arg = &status
-	xor edx, edx                ; third arg = NULL
-	push 61
-	pop rax                     ; WAITPID
-	syscall                     ; wait4pid(f, &status, 0, 0); [r10 = 0]
-
-	mov rax, [status]           ; Using status
-	test eax, eax               ; IF 0 == status
-	je main_loop                ; Loop forever
-
-	;; Deal with very unhappy case
-	mov rax, hard               ; Using "Subprocess error\nABORTING HARD\n"
-	call File_Print             ; Print it
 
 ;; Exit_Failure function
 ;; Receives nothing
@@ -131,16 +113,33 @@ collect_command_parent:
 Exit_Failure:
 	push 1
 	pop rdi                     ; All is wrong
-	push 60
-	pop rax                     ; put the exit syscall number in rax
-	syscall                     ; Call it a bad day
+	jmp Exit                    ; Exit
+
+collect_command_parent:
+	mov rdi, rax                ; first arg = f
+	push rax                    ; allocate stack for status
+	mov rsi, rsp                ; second arg = &status
+	xor edx, edx                ; third arg = NULL
+	push 61
+	pop rax                     ; WAITPID
+	syscall                     ; wait4pid(f, &status, 0, 0); [r10 = 0]
+
+	pop rax                     ; Using status
+	test eax, eax               ; IF 0 == status
+	je main_loop                ; Loop forever
+
+	;; Deal with very unhappy case
+	mov rax, hard               ; Using "Subprocess error\n"
+	call File_Print             ; Print it
+	jmp Exit_Failure            ; return error
 
 Done:
 	; program completed Successfully
 	xor edi, edi                ; All is well
-	push 60
+Exit:
+	push 60                     ; SYS_exit
 	pop rax                     ; put the exit syscall number in rax
-	syscall                     ; Call it a good day
+	syscall                     ; Call it a day
 
 ;; print_command function
 ;; Receives tokens[j] in RDI and tokens[i] in RSI
@@ -173,7 +172,8 @@ print_command_loop:
 collect_token:
 	push rdi                    ; Protect RDI
 	push rsi                    ; Protect RSI
-	mov rax, [max_string]       ; Using max_string
+	xor eax, eax                ; Zero RAX
+	mov ah, 0x10                ; max_string = 4096 * sizeof(char)
 	call malloc                 ; allocate space
 	mov rdi, rax                ; token = malloc(max_string);
 	mov rsi, rax                ; i = 0; set token[i]
@@ -370,7 +370,4 @@ fputc:
 section .data
 default_file: db "kaem.amd64", 0
 prefix: db " +> ", 0
-hard: db "Subprocess error", 10, "ABORTING HARD", 10, 0
-max_args: dq 2048               ; 256 * sizeof(char*)
-max_string: dq 4096             ; 4096 * sizeof(char)
-status: dq 0
+hard: db "Subprocess error", 10, 0

@@ -29,6 +29,7 @@ DEFINE COPY_RDI_to_RDX 4889FA
 DEFINE COPY_RDI_to_RSI 4889FE
 DEFINE COPY_RDI_to_R14 4989FE
 DEFINE COPY_RSP_to_RBP 4889E5
+DEFINE COPY_RSP_to_RSI 4889E6
 DEFINE COPY_RAX_to_R13 4989C5
 DEFINE COPY_RAX_to_R14 4989C6
 DEFINE COPY_R13_to_RDI 4C89EF
@@ -37,17 +38,16 @@ DEFINE COPY_R14_to_RAX 4C89F0
 DEFINE JE32 0F84
 DEFINE JE8 74
 DEFINE JL8 7C
-DEFINE JLE32 0F8E
+DEFINE JLE8 7E
 DEFINE JMP8 EB
 DEFINE JNE8 75
 DEFINE LEA_RSI 488D3424
-DEFINE LOAD64_RAX_from_ABS32 488B0425
 DEFINE LOAD64_into_RAX_from_Address_RDI 488B07
 DEFINE LOAD64_into_RDI_from_Address_RDI 488B3F
 DEFINE LOAD8_into_AL_from_Address_RDI 8A07
+DEFINE LOADI8_AH B4
 DEFINE LOADI32_EAX B8
 DEFINE LOADI32_EDI BF
-DEFINE LOADI32_ESI BE
 DEFINE POP_RAX 58
 DEFINE POP_RDI 5F
 DEFINE POP_RDX 5A
@@ -60,11 +60,11 @@ DEFINE PUSH_RDX 52
 DEFINE PUSH_RSI 56
 DEFINE RETURN C3
 DEFINE STORE64_RAX_into_Address_RSI 488906
-DEFINE STORE64_from_RAX_into_ABS32 48890425
 DEFINE STORE8_AL_into_Address_RSI 8806
 DEFINE SYSCALL 0F05
 DEFINE TEST_EAX_EAX 85C0
 DEFINE TEST_EDI_EDI 85FF
+DEFINE TEST_R12_R12 4D85E4
 DEFINE TEST_R15_R15 4D85FF
 DEFINE XOR_EAX_EAX 31C0
 DEFINE XOR_EDX_EDX 31D2
@@ -93,7 +93,7 @@ DEFINE XOR_R15_R15 4D31FF
 	SYSCALL                             ; Now open that damn file
 
 	TEST_EAX_EAX                        ; IF NULL We couldn't open the file
-	JLE32 %Exit_Failure                 ; Abort hard
+	JLE8 !Exit_Failure                  ; Abort hard
 	COPY_RAX_to_R13                     ; Set input pointer
 
 	POP_RAX                             ; Get start of envp
@@ -108,13 +108,13 @@ DEFINE XOR_R15_R15 4D31FF
 	;; Where the main work gets done
 	;; Using RDI for tokens and RSI for tokens[i]
 :main_loop
-	LOAD64_RAX_from_ABS32 &max_args     ; Using 256 char* of space
+	XOR_EAX_EAX                         ; Zero RAX
+	LOADI8_AH !0x8                      ; Using 256 char* of space (0x800)
 	CALLI32 %malloc                     ; get it
 	COPY_RAX_to_RDI                     ; set tokens
 
 	COPY_RDI_to_RSI                     ; I = 0
 	XOR_EAX_EAX                         ; Using 0
-	STORE64_from_RAX_into_ABS32 &status ; status = 0
 	XOR_R15_R15                         ; command_done = 0
 
 	;; Using RAX for result and RDI for tokens[i]
@@ -156,23 +156,6 @@ DEFINE XOR_R15_R15 4D31FF
 	COPY_RDI_to_RSI                     ; second arg = tokens
 	LOAD64_into_RDI_from_Address_RDI    ; program = tokens[0]
 	SYSCALL                             ; execve(program, tokens, envp);
-	JMP8 !Exit_Failure                  ; return error
-
-:collect_command_parent
-	COPY_RAX_to_RDI                     ; first arg = f
-	LOADI32_ESI &status                 ; second arg = &status
-	XOR_EDX_EDX                         ; third arg = NULL
-	PUSH !61
-	POP_RAX                             ; WAITPID
-	SYSCALL                             ; wait4pid(f, &status, 0, 0); [r10 = 0]
-
-	LOAD64_RAX_from_ABS32 &status       ; Using status
-	TEST_EAX_EAX                        ; IF 0 == status
-	JE32 %main_loop                     ; Loop forever
-
-	;; Deal with very unhappy case
-	LOADI32_EAX &hard                   ; Using "Subprocess error\nABORTING HARD\n"
-	CALLI32 %File_Print                 ; Print it
 
 ;; Exit_Failure function
 ;; Receives nothing
@@ -181,16 +164,33 @@ DEFINE XOR_R15_R15 4D31FF
 :Exit_Failure
 	PUSH !1
 	POP_RDI                             ; All is wrong
-	PUSH !60
-	POP_RAX                             ; put the exit syscall number in rax
-	SYSCALL                             ; Call it a bad day
+	JMP8 !Exit                          ; Exit
+
+:collect_command_parent
+	COPY_RAX_to_RDI                     ; first arg = f
+	PUSH_RAX                            ; allocate stack for status
+	COPY_RSP_to_RSI                     ; second arg = &status
+	XOR_EDX_EDX                         ; third arg = NULL
+	PUSH !61
+	POP_RAX                             ; WAITPID
+	SYSCALL                             ; wait4pid(f, &status, 0, 0); [r10 = 0]
+
+	POP_RAX                             ; Using status
+	TEST_EAX_EAX                        ; IF 0 == status
+	JE8 !main_loop                      ; Loop forever
+
+	;; Deal with very unhappy case
+	LOADI32_EAX &hard                   ; Using "Subprocess error\nABORTING HARD\n"
+	CALLI32 %File_Print                 ; Print it
+	JMP8 !Exit_Failure                  ; return error
 
 :Done
 	; program completed Successfully
 	XOR_EDI_EDI                         ; All is well
-	PUSH !60
+:Exit
+	PUSH !60                            ; SYS_exit
 	POP_RAX                             ; put the exit syscall number in rax
-	SYSCALL                             ; Call it a good day
+	SYSCALL                             ; Call it a day
 
 ;; print_command function
 ;; Receives tokens[j] in RDI and tokens[i] in RSI
@@ -223,7 +223,8 @@ DEFINE XOR_R15_R15 4D31FF
 :collect_token
 	PUSH_RDI                            ; Protect RDI
 	PUSH_RSI                            ; Protect RSI
-	LOAD64_RAX_from_ABS32 &max_string   ; Using max_string
+	XOR_EAX_EAX                         ; Zero RAX
+	LOADI8_AH !0x10                     ; max_string = 4096 * sizeof(char)
 	CALLI32 %malloc                     ; allocate space
 	COPY_RAX_to_RDI                     ; token = malloc(max_string);
 	COPY_RAX_to_RSI                     ; i = 0; set token[i]
@@ -422,13 +423,6 @@ DEFINE XOR_R15_R15 4D31FF
 	" +> "
 :hard
 "Subprocess error
-ABORTING HARD
 "
-:max_args
-%2048 %0
-:max_string
-%4096 %0
-:status
-%0 %0
 
 :ELF_end
