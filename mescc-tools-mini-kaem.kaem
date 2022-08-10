@@ -29,7 +29,7 @@
 # Phase-1 Build hex1 from hex0  #
 #################################
 ./AMD64/artifact/hex0 ./AMD64/hex1_AMD64.hex0 ./AMD64/artifact/hex1
-# hex1 adds support for single character labels and is available in various froms
+# hex1 adds support for single character labels and is available in various forms
 # in mescc-tools/amd64_bootstrap to allow you various ways to verify correctness
 
 #################################
