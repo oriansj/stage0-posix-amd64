@@ -476,7 +476,7 @@ DEFINE ZERO_EXTEND_BL 480FB6DB
 	JMP32 %consume_token        ; loop until done
 
 :consume_token_done
-	LOADI32_RCX %0              ; Padd with nulls
+	LOADI32_RCX %0              ; Pad with nulls
 	STORE32_RCX_into_Address_RBX
 	ADDI8_to_RBX !8
 	RET

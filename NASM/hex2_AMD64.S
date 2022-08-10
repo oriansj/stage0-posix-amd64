@@ -187,7 +187,7 @@ First_pass_pointer:
 	jmp First_pass              ; Loop again
 
 First_pass_done:
-	RET
+	ret
 
 hex:
 	; deal with EOF
@@ -400,7 +400,7 @@ consume_token:
 	jmp consume_token           ; loop until done
 
 consume_token_done:
-	mov rcx, 0                  ; Padd with nulls
+	mov rcx, 0                  ; Pad with nulls
 	mov [rbx], rcx
 	add rbx, 8
 	ret

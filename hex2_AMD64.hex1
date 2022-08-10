@@ -447,7 +447,7 @@ CF 05 00 00 00 00 00 00 ## p_memsz
 	E9 %A                       ; JMP32 %consume_token        ; loop until done
 
 :B # :consume_token_done
-	B9 00000000                 ; LOADI32_RCX %0              ; Padd with nulls
+	B9 00000000                 ; LOADI32_RCX %0              ; Pad with nulls
 	48890B                      ; STORE32_RCX_into_Address_RBX
 	4883C3 08                   ; ADDI8_to_RBX !8
 	C3                          ; RET
