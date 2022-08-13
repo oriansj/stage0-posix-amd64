@@ -286,10 +286,10 @@ DEFINE ZERO_EXTEND_BL 480FB6DB
 	; deal with A-F
 	CMP_RAX_Immediate8 !0x47
 	JL32 %ascii_high
-	;deal with all ascii less than a
+	; deal with all ascii less than a
 	CMP_RAX_Immediate8 !0x61
 	JL32 %ascii_other
-	;deal with a-f
+	; deal with a-f
 	CMP_RAX_Immediate8 !0x67
 	JL32 %ascii_low
 	; The rest that remains needs to be ignored

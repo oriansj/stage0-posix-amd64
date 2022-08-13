@@ -457,10 +457,10 @@ ClearScratch:
 	mov al, 0                   ; Using null
 
 ClearScratch_loop:
-	mov rcx, [rbx]               ; Get current value
+	mov rcx, [rbx]              ; Get current value
 	mov [rbx], al               ; Because we want null
 	add rbx, 1                  ; Increment
-	cmp rcx, 0                   ; Check if we hit null
+	cmp rcx, 0                  ; Check if we hit null
 	jne ClearScratch_loop       ; Keep looping
 
 	pop rcx

@@ -174,10 +174,10 @@ DEFINE TEST_RAX_RAX 4885C0
 	# deal with A-F
 	CMPI32_RAX %0x47
 	JL32 %ascii_high
-	#deal with all ascii less than a
+	# deal with all ascii less than a
 	CMPI32_RAX %0x61
 	JL32 %ascii_other
-	#deal with a-f
+	# deal with a-f
 	CMPI32_RAX %0x67
 	JL32 %ascii_low
 	# The rest that remains needs to be ignored
