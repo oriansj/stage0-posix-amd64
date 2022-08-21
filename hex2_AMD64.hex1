@@ -391,7 +391,7 @@ CF 05 00 00 00 00 00 00 ## p_memsz
 :x # :Read_byte
 	; Attempt to read 1 byte from STDIN
 	BA 01000000                 ; LOADI32_RDX %1              ; set the size of chars we want
-	BE C7056000                 ; LOADI32_RSI &write          ; Where to put it
+	488D35 %S                   ; LEA_RSI %write              ; Where to put it
 	4C89CF                      ; COPY_R9_to_RDI              ; Where are we reading from
 	48C7C0 00000000             ; LOADI32_RAX %0              ; the syscall number for read
 	4153                        ; PUSH_R11                    ; Protect r11
@@ -402,7 +402,7 @@ CF 05 00 00 00 00 00 00 ## p_memsz
 	0F84 %y                     ; JE32 %Read_byte_1           ; Got EOF call it done
 
 	; load byte
-	8A0425 C7056000             ; LOAD8_AL_from_Absolute32 &write ; load char
+	8A05 %S                     ; LOAD8_AL_from_Rel32 %write  ; load char
 	480FB6C0                    ; ZERO_EXTEND_AL              ; We have to zero extend it to use it
 	C3                          ; RET
 
@@ -591,7 +591,7 @@ CF 05 00 00 00 00 00 00 ## p_memsz
 	0F05                        ; SYSCALL                     ; Call it a good day
 
 
-# :write (C7056000)
+:S # :write (C7056000)
 	00000000            ; NULL
 	00000000            ; NULL
 

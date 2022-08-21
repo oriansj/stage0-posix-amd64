@@ -48,9 +48,10 @@ DEFINE JL32 0F8C
 DEFINE JMP32 E9
 DEFINE JNE32 0F85
 DEFINE STORE32_from_RAX_into_ABS32 48890425
+DEFINE LEA_RSI 488D35
 DEFINE LOAD8_AL_from_Address_RSI 8A06
 DEFINE LOAD8_BL_from_Address_RDI 8A1F
-DEFINE LOAD8_AL_from_Absolute32 8A0425
+DEFINE LOAD8_AL_from_Rel32 8A05
 DEFINE LOAD32_into_RSI_from_Address_RCX_Immediate8 488B71
 DEFINE LOAD32_into_RAX_from_Address_RCX_Immediate8 488B41
 DEFINE LOAD32_into_RCX_from_Address_RCX 488B09
@@ -420,7 +421,7 @@ DEFINE ZERO_EXTEND_BL 480FB6DB
 :Read_byte
 	; Attempt to read 1 byte from STDIN
 	LOADI32_RDX %1              ; set the size of chars we want
-	LOADI32_RSI &write          ; Where to put it
+	LEA_RSI %write              ; Where to put it
 	COPY_R9_to_RDI              ; Where are we reading from
 	LOADI32_RAX %0              ; the syscall number for read
 	PUSH_R11                    ; Protect r11
@@ -431,7 +432,7 @@ DEFINE ZERO_EXTEND_BL 480FB6DB
 	JE32 %Read_byte_1           ; Got EOF call it done
 
 	; load byte
-	LOAD8_AL_from_Absolute32 &write ; load char
+	LOAD8_AL_from_Rel32 %write  ; load char
 	ZERO_EXTEND_AL              ; We have to zero extend it to use it
 	RET
 

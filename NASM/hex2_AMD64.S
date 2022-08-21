@@ -344,7 +344,7 @@ malloc:
 Read_byte:
 	; Attempt to read 1 byte from STDIN
 	mov rdx,  1                 ; set the size of chars we want
-	mov rsi, write              ; Where to put it
+	lea rsi, [rel write]        ; Where to put it
 	mov rdi, r9                 ; Where are we reading from
 	mov rax, 0                  ; the syscall number for read
 	push r11                    ; Protect r11
@@ -355,7 +355,7 @@ Read_byte:
 	je Read_byte_1              ; Got EOF call it done
 
 	; load byte
-	mov al, [write]             ; load char
+	mov al, [rel write]         ; load char
 	movzx rax, al               ; We have to zero extend it to use it
 	ret
 
