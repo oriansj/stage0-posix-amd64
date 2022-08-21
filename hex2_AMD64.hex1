@@ -87,6 +87,9 @@ CF 05 00 00 00 00 00 00 ## p_memsz
 	4881C7 00008000             ; ADDI32_to_RDI %8388608      ; Create space for temp [8MB]
 	E8 %w                       ; CALLI32 %malloc             ; Give ourselves 8192000 bytes to work with
 
+	4C8925 %T                   ; STORE32_rel_R12 %scratch    ; Allocate space for scratch area
+	4981C4 00080000             ; ADDI32_to_R12 %0x800        ; 2 KiB of scratch
+
 	58                          ; POP_RAX                     ; Get the number of arguments
 	5F                          ; POP_RDI                     ; Get the program name
 	5F                          ; POP_RDI                     ; Get the actual input name
@@ -220,14 +223,14 @@ CF 05 00 00 00 00 00 00 ## p_memsz
 :h # :First_pass_pointer
 	; Deal with Pointer to label
 	E8 %d                       ; CALLI32 %Update_Pointer     ; Increment IP
-	BB CF056000                 ; LOADI32_RBX &table          ; Using scratch
+	488B1D %T                   ; LOADI32_RBX_rel %scratch    ; Using scratch
 	E8 %A                       ; CALLI32 %consume_token      ; Read token
 	E8 %H                       ; CALLI32 %ClearScratch       ; Throw away token
 	4883F8 3E                   ; CMP_RAX_Immediate8 !0x3E    ; check for '>'
 	0F85 %a                     ; JNE32 %First_pass           ; Loop again
 
 	;; Deal with %label>label case
-	BB CF056000                 ; LOADI32_RBX &table          ; Write to scratch
+	488B1D %T                   ; LOADI32_RBX_rel %scratch    ; Write to scratch
 	E8 %A                       ; CALLI32 %consume_token      ; get token
 	E8 %H                       ; CALLI32 %ClearScratch       ; Clean up after ourselves
 	E9 %a                       ; JMP32 %First_pass           ; Loop again
@@ -277,7 +280,7 @@ CF 05 00 00 00 00 00 00 ## p_memsz
 	4883F8 3A                   ; CMP_RAX_Immediate8 !0x3A
 	0F85 %l                     ; JNE32 %Second_pass_0
 
-	BB CF056000                 ; LOADI32_RBX &table          ; Using scratch
+	488B1D %T                   ; LOADI32_RBX_rel %scratch    ; Using scratch
 	E8 %A                       ; CALLI32 %consume_token      ; Read token
 	E8 %H                       ; CALLI32 %ClearScratch       ; Throw away token
 
@@ -358,7 +361,6 @@ CF 05 00 00 00 00 00 00 ## p_memsz
 	; update the sum and store in output
 	49C1E6 04                   ; SHL_R14_Immediate8 !4
 	4C01F0                      ; ADD_R14_to_RAX
-	880425 CF056000             ; STORE8_AL_into_Absolute32 &table
 
 	; flip the toggle
 	49F7D7                      ; NOT_R15
@@ -467,7 +469,7 @@ CF 05 00 00 00 00 00 00 ## p_memsz
 	E9 %a                       ; JMP32 %First_pass
 
 :D # :GetTarget
-	BF CF056000                 ; LOADI32_RDI &table          ; Reset scratch
+	488B3D %T                   ; LOADI32_RDI_rel %scratch    ; Reset scratch
 	4C89D9                      ; COPY_R11_to_RCX             ; Grab JUMP_TABLE
 	488B71 10                   ; LOAD32_into_RSI_from_Address_RCX_Immediate8 !16 ; I->NAME
 :E # :GetTarget_loop
@@ -491,7 +493,7 @@ CF 05 00 00 00 00 00 00 ## p_memsz
 	0F84 %Q                     ; JE32 %fail                  ; Abort hard
 
 	488B71 10                   ; LOAD32_into_RSI_from_Address_RCX_Immediate8 !16 ; I->NAME
-	BF CF056000                 ; LOADI32_RDI &table          ; Reset scratch
+	488B3D %T                   ; LOADI32_RDI_rel %scratch    ; Reset scratch
 	E9 %E                       ; JMP32 %GetTarget_loop
 
 :G # :GetTarget_done
@@ -502,7 +504,7 @@ CF 05 00 00 00 00 00 00 ## p_memsz
 	50                          ; PUSH_RAX                    ; Protect against changes
 	53                          ; PUSH_RBX                    ; And overwrites
 	51                          ; PUSH_RCX                    ; While we work
-	BB CF056000                 ; LOADI32_RBX &table          ; Where our table is
+	488B1D %T                   ; LOADI32_RBX_rel %scratch    ; Where our scratch is
 	48C7C0 00000000             ; LOADI32_RAX %0              ; Using null
 
 :I # :ClearScratch_loop
@@ -519,10 +521,10 @@ CF 05 00 00 00 00 00 00 ## p_memsz
 
 :J # :StorePointer
 	E8 %d                       ; CALLI32 %Update_Pointer     ; Increment IP
-	BB CF056000                 ; LOADI32_RBX &table          ; Write to scratch
+	488B1D %T                   ; LOADI32_RBX_rel %scratch    ; Write to scratch
 	E8 %A                       ; CALLI32 %consume_token      ; get token
 	50                          ; PUSH_RAX                    ; Protect base_sep_p
-	48C7C0 CF056000             ; LOADI32_RAX &table          ; Pointer to scratch
+	488B05 %T                   ; LOADI32_RAX_rel %scratch    ; Pointer to scratch
 	E8 %D                       ; CALLI32 %GetTarget          ; Get address of pointer
 	E8 %H                       ; CALLI32 %ClearScratch       ; Clean up after ourselves
 	4C89EA                      ; COPY_R13_to_RDX             ; base = IP
@@ -532,9 +534,9 @@ CF 05 00 00 00 00 00 00 ## p_memsz
 
 	;; Deal with %label>label case
 	50                          ; PUSH_RAX                    ; We need to preserve main target
-	BB CF056000                 ; LOADI32_RBX &table          ; Write to scratch
+	488B1D %T                   ; LOADI32_RBX_rel %scratch    ; Write to scratch
 	E8 %A                       ; CALLI32 %consume_token      ; get token
-	48C7C0 CF056000             ; LOADI32_RAX &table          ; Pointer to scratch
+	488B05 %T                   ; LOADI32_RAX_rel %scratch    ; Pointer to scratch
 	E8 %D                       ; CALLI32 %GetTarget          ; Get address of pointer
 	E8 %H                       ; CALLI32 %ClearScratch       ; Clean up after ourselves
 	4889C2                      ; COPY_RAX_to_RDX             ; Use our new base
@@ -592,5 +594,8 @@ CF 05 00 00 00 00 00 00 ## p_memsz
 	00000000            ; NULL
 	00000000            ; NULL
 
-# :table (CF056000)
+:T # :scratch
+	00000000            ; NULL
+	00000000            ; NULL
+
 # :ELF_end

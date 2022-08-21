@@ -21,6 +21,7 @@ DEFINE ADDI8_to_RBX 4883C3
 DEFINE ADDI8_to_RSI 4883C6
 DEFINE ADDI8_to_RDI 4883C7
 DEFINE ADDI32_to_RDI 4881C7
+DEFINE ADDI32_to_R12 4981C4
 DEFINE ADD_R14_to_RAX 4C01F0
 DEFINE CALLI32 E8
 DEFINE CMP_AL_to_BL 38D8
@@ -58,7 +59,6 @@ DEFINE LOAD32_into_RAX_from_Address_RCX_Immediate8 488B41
 DEFINE LOAD32_into_RCX_from_Address_RCX 488B09
 DEFINE LOAD32_into_RCX_from_Address_RBX 488B0B
 DEFINE LOADI32_RAX 48C7C0
-DEFINE LOADI32_RBX BB
 DEFINE LOADI32_RCX B9
 DEFINE LOADI32_RDI BF
 DEFINE LOADI32_RDX BA
@@ -67,6 +67,9 @@ DEFINE LOADI32_R11 41BB
 DEFINE LOADI32_R13 41BD
 DEFINE LOADI32_R14 41BE
 DEFINE LOADI32_R15 49C7C7
+DEFINE LOADI32_RAX_rel 488B05
+DEFINE LOADI32_RBX_rel 488B1D
+DEFINE LOADI32_RDI_rel 488B3D
 DEFINE NOT_R15 49F7D7
 DEFINE NULL 00000000
 DEFINE POP_RAX 58
@@ -87,6 +90,7 @@ DEFINE STORE32_RCX_into_Address_RBX 48890B
 DEFINE STORE32_R11_into_Address_RAX 4C8918
 DEFINE STORE32_R13_into_Address_RAX_Immediate8 4C8968
 DEFINE STORE32_R12_into_Address_R11_Immediate8 4D8963
+DEFINE STORE32_rel_R12 4C8925
 DEFINE SUBI8_RAX 83E8
 DEFINE SYSCALL 0F05
 DEFINE TEST_RAX_RAX 4885C0
@@ -117,6 +121,9 @@ DEFINE ZERO_EXTEND_BL 480FB6DB
 	COPY_RAX_to_R12             ; Setup MALLOC
 	ADDI32_to_RDI %8388608      ; Create space for temp [8MB]
 	CALLI32 %malloc             ; Give ourselves 8192000 bytes to work with
+
+	STORE32_rel_R12 %scratch    ; Allocate space for scratch area
+	ADDI32_to_R12 %0x800        ; 2 KiB of scratch
 
 	POP_RAX                     ; Get the number of arguments
 	POP_RDI                     ; Get the program name
@@ -251,14 +258,14 @@ DEFINE ZERO_EXTEND_BL 480FB6DB
 :First_pass_pointer
 	; Deal with Pointer to label
 	CALLI32 %Update_Pointer     ; Increment IP
-	LOADI32_RBX &table          ; Using scratch
+	LOADI32_RBX_rel %scratch    ; Using scratch
 	CALLI32 %consume_token      ; Read token
 	CALLI32 %ClearScratch       ; Throw away token
 	CMP_RAX_Immediate8 !0x3E    ; check for '>'
 	JNE32 %First_pass           ; Loop again
 
 	;; Deal with %label>label case
-	LOADI32_RBX &table          ; Write to scratch
+	LOADI32_RBX_rel %scratch    ; Write to scratch
 	CALLI32 %consume_token      ; get token
 	CALLI32 %ClearScratch       ; Clean up after ourselves
 	JMP32 %First_pass           ; Loop again
@@ -308,7 +315,7 @@ DEFINE ZERO_EXTEND_BL 480FB6DB
 	CMP_RAX_Immediate8 !0x3A
 	JNE32 %Second_pass_0
 
-	LOADI32_RBX &table          ; Using scratch
+	LOADI32_RBX_rel %scratch    ; Using scratch
 	CALLI32 %consume_token      ; Read token
 	CALLI32 %ClearScratch       ; Throw away token
 
@@ -389,7 +396,6 @@ DEFINE ZERO_EXTEND_BL 480FB6DB
 	; update the sum and store in output
 	SHL_R14_Immediate8 !4
 	ADD_R14_to_RAX
-	STORE8_AL_into_Absolute32 &table
 
 	; flip the toggle
 	NOT_R15
@@ -498,7 +504,7 @@ DEFINE ZERO_EXTEND_BL 480FB6DB
 	JMP32 %First_pass
 
 :GetTarget
-	LOADI32_RDI &table          ; Reset scratch
+	LOADI32_RDI_rel %scratch    ; Reset scratch
 	COPY_R11_to_RCX             ; Grab JUMP_TABLE
 	LOAD32_into_RSI_from_Address_RCX_Immediate8 !16 ; I->NAME
 :GetTarget_loop
@@ -522,7 +528,7 @@ DEFINE ZERO_EXTEND_BL 480FB6DB
 	JE32 %fail                  ; Abort hard
 
 	LOAD32_into_RSI_from_Address_RCX_Immediate8 !16 ; I->NAME
-	LOADI32_RDI &table          ; Reset scratch
+	LOADI32_RDI_rel %scratch    ; Reset scratch
 	JMP32 %GetTarget_loop
 
 :GetTarget_done
@@ -533,7 +539,7 @@ DEFINE ZERO_EXTEND_BL 480FB6DB
 	PUSH_RAX                    ; Protect against changes
 	PUSH_RBX                    ; And overwrites
 	PUSH_RCX                    ; While we work
-	LOADI32_RBX &table          ; Where our table is
+	LOADI32_RBX_rel %scratch    ; Where our scratch is
 	LOADI32_RAX %0              ; Using null
 
 :ClearScratch_loop
@@ -550,10 +556,10 @@ DEFINE ZERO_EXTEND_BL 480FB6DB
 
 :StorePointer
 	CALLI32 %Update_Pointer     ; Increment IP
-	LOADI32_RBX &table          ; Write to scratch
+	LOADI32_RBX_rel %scratch    ; Write to scratch
 	CALLI32 %consume_token      ; get token
 	PUSH_RAX                    ; Protect base_sep_p
-	LOADI32_RAX &table          ; Pointer to scratch
+	LOADI32_RAX_rel %scratch    ; Pointer to scratch
 	CALLI32 %GetTarget          ; Get address of pointer
 	CALLI32 %ClearScratch       ; Clean up after ourselves
 	COPY_R13_to_RDX             ; base = IP
@@ -563,9 +569,9 @@ DEFINE ZERO_EXTEND_BL 480FB6DB
 
 	;; Deal with %label>label case
 	PUSH_RAX                    ; We need to preserve main target
-	LOADI32_RBX &table          ; Write to scratch
+	LOADI32_RBX_rel %scratch    ; Write to scratch
 	CALLI32 %consume_token      ; get token
-	LOADI32_RAX &table          ; Pointer to scratch
+	LOADI32_RAX_rel %scratch    ; Pointer to scratch
 	CALLI32 %GetTarget          ; Get address of pointer
 	CALLI32 %ClearScratch       ; Clean up after ourselves
 	COPY_RAX_to_RDX             ; Use our new base
@@ -624,4 +630,6 @@ NULL
 NULL
 
 :table
+NULL
+NULL
 :ELF_end

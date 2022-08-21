@@ -41,6 +41,9 @@ _start:
 	add rdi, 12582912           ; Create space for temp [12MB]
 	call malloc                 ; Give ourselves 81920 bytes to work with
 
+	mov [rel scratch], r12      ; Allocate space for scratch area
+	add r12, 0x800              ; 2 KiB of scratch
+
 	pop rax                     ; Get the number of arguments
 	pop rdi                     ; Get the program name
 	pop rdi                     ; Get the actual input name
@@ -174,14 +177,14 @@ Update_Pointer_1:
 First_pass_pointer:
 	; Deal with Pointer to label
 	call Update_Pointer         ; Increment IP
-	mov rbx, table              ; Using scratch
+	mov rbx, [rel scratch]      ; Using scratch
 	call consume_token          ; Read token
 	call ClearScratch           ; Throw away token
 	cmp rax, 0x3E               ; check for '>'
 	jne First_pass              ; Loop again
 
 	;; Deal with %label>label case
-	mov rbx, table              ; Write to scratch
+	mov rbx, [rel scratch]      ; Write to scratch
 	call consume_token          ; get token
 	call ClearScratch           ; Clean up after ourselves
 	jmp First_pass              ; Loop again
@@ -231,7 +234,7 @@ Second_pass:
 	cmp rax, 0x3a
 	jne Second_pass_0
 
-	mov rbx, table              ; Using scratch
+	mov rbx, [rel scratch]      ; Using scratch
 	call consume_token          ; Read token
 	call ClearScratch           ; Throw away token
 
@@ -311,7 +314,6 @@ print:
 	; update the sum and store in output
 	shl r14, 4
 	add rax, r14
-	mov [table], al
 
 	; flip the toggle
 	not r15
@@ -420,7 +422,7 @@ StoreLabel:
 	jmp First_pass
 
 GetTarget:
-	mov rdi, table              ; Reset scratch
+	mov rdi, [rel scratch]      ; Reset scratch
 	mov rcx, r11                ; Grab JUMP_TABLE
 	mov rsi, [rcx+16]           ; I->NAME
 GetTarget_loop:
@@ -444,7 +446,7 @@ GetTarget_miss:
 	je fail                     ; Abort hard
 
 	mov rsi, [rcx+16]           ; I->NAME
-	mov rdi, table              ; Reset scratch
+	mov rdi, [rel scratch]      ; Reset scratch
 	jmp GetTarget_loop
 
 GetTarget_done:
@@ -455,7 +457,7 @@ ClearScratch:
 	push rax                    ; Protect against changes
 	push rbx                    ; And overwrites
 	push rcx                    ; While we work
-	mov rbx, table              ; Where our table is
+	mov rbx, [rel scratch]      ; Where our scratch is
 	mov al, 0                   ; Using null
 
 ClearScratch_loop:
@@ -472,10 +474,10 @@ ClearScratch_loop:
 
 StorePointer:
 	call Update_Pointer         ; Increment IP
-	mov rbx, table              ; Write to scratch
+	mov rbx, [rel scratch]      ; Write to scratch
 	call consume_token          ; get token
 	push rax                    ; Protect base_sep_p
-	mov rax, table              ; Pointer to scratch
+	mov rax, [rel scratch]      ; Pointer to scratch
 	call GetTarget              ; Get address of pointer
 	call ClearScratch           ; Clean up after ourselves
 	mov rdx, r13                ; base = IP
@@ -485,9 +487,9 @@ StorePointer:
 
 	;; Deal with %label>label case
 	push rax                    ; We need to preserve main target
-	mov rbx, table              ; Write to scratch
+	mov rbx, [rel scratch]      ; Write to scratch
 	call consume_token          ; get token
-	mov rax, table              ; Pointer to scratch
+	mov rax, [rel scratch]      ; Pointer to scratch
 	call GetTarget              ; Get address of pointer
 	call ClearScratch           ; Clean up after ourselves
 	mov rdx, rax                ; Use our new base
@@ -545,5 +547,5 @@ section .data
 ELF_end:
 write:
 	dq 0
-table:
-	dq 66
+scratch:
+	dq 0
