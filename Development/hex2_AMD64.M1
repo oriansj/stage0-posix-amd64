@@ -42,6 +42,7 @@ DEFINE COPY_RAX_to_R12 4989C4
 DEFINE COPY_RAX_to_R14 4989C6
 DEFINE COPY_RAX_to_RDX 4889C2
 DEFINE COPY_RAX_to_RDI 4889C7
+DEFINE COPY_RSP_to_RSI 4889E6
 DEFINE JE32 0F84
 DEFINE JG32 0F8F
 DEFINE JL32 0F8C
@@ -442,12 +443,14 @@ DEFINE ZERO_EXTEND_BL 480FB6DB
 	RET
 
 :print_chars
-	LOADI32_RSI &table          ; What we are writing
+	PUSH_RAX                    ; Push address of chars onto stack
+	COPY_RSP_to_RSI             ; What we are writing
 	COPY_R10_to_RDI             ; Write to target file
 	LOADI32_RAX %1              ; the syscall number for write
 	PUSH_R11                    ; Protect HEAD
 	SYSCALL                     ; call the Kernel
 	POP_R11                     ; Restore HEAD
+	POP_RAX                     ; deallocate stack
 	RET
 
 	;; Receives pointer in RBX
@@ -574,7 +577,6 @@ DEFINE ZERO_EXTEND_BL 480FB6DB
 :StorePointer_rel4
 	CALLI32 %StorePointer       ; Do Common
 	SUB_RDX_from_RAX            ; target - ip
-	STORE32_from_RAX_into_ABS32 &table ; put value in output
 	LOADI32_RDX %4              ; set the size of chars we want
 	CALLI32 %print_chars
 	CALLI32 %ClearScratch       ; Clean up after ourselves
@@ -583,7 +585,6 @@ DEFINE ZERO_EXTEND_BL 480FB6DB
 :StorePointer_rel2
 	CALLI32 %StorePointer       ; Do Common
 	SUB_RDX_from_RAX            ; target - ip
-	STORE32_from_RAX_into_ABS32 &table ; put value in output
 	LOADI32_RDX %2              ; set the size of chars we want
 	CALLI32 %print_chars
 	CALLI32 %ClearScratch       ; Clean up after ourselves
@@ -592,7 +593,6 @@ DEFINE ZERO_EXTEND_BL 480FB6DB
 :StorePointer_rel1
 	CALLI32 %StorePointer       ; Do Common
 	SUB_RDX_from_RAX            ; target - ip
-	STORE32_from_RAX_into_ABS32 &table ; put value in output
 	LOADI32_RDX %1              ; set the size of chars we want
 	CALLI32 %print_chars
 	CALLI32 %ClearScratch       ; Clean up after ourselves
@@ -600,7 +600,6 @@ DEFINE ZERO_EXTEND_BL 480FB6DB
 
 :StorePointer_abs4
 	CALLI32 %StorePointer       ; Do Common
-	STORE32_from_RAX_into_ABS32 &table ; put value in output
 	LOADI32_RDX %4              ; set the size of chars we want
 	CALLI32 %print_chars
 	CALLI32 %ClearScratch       ; Clean up after ourselves
@@ -608,7 +607,6 @@ DEFINE ZERO_EXTEND_BL 480FB6DB
 
 :StorePointer_abs2
 	CALLI32 %StorePointer       ; Do Common
-	STORE32_from_RAX_into_ABS32 &table ; put value in output
 	LOADI32_RDX %2              ; set the size of chars we want
 	CALLI32 %print_chars
 	CALLI32 %ClearScratch       ; Clean up after ourselves

@@ -412,12 +412,14 @@ CF 05 00 00 00 00 00 00 ## p_memsz
 	C3                          ; RET
 
 :z # :print_chars
-	BE CF056000                 ; LOADI32_RSI &table          ; What we are writing
+	50                          ; PUSH_RAX                    ; Push address of chars onto stack
+	4889E6                      ; COPY_RSP_to_RSI             ; What we are writing
 	4C89D7                      ; COPY_R10_to_RDI             ; Write to target file
 	48C7C0 01000000             ; LOADI32_RAX %1              ; the syscall number for write
 	4153                        ; PUSH_R11                    ; Protect HEAD
 	0F05                        ; SYSCALL                     ; call the Kernel
 	415B                        ; POP_R11                     ; Restore HEAD
+	58                          ; POP_RAX                     ; deallocate stack
 	C3                          ; RET
 
 	;; Receives pointer in RBX
@@ -544,7 +546,6 @@ CF 05 00 00 00 00 00 00 ## p_memsz
 :L # :StorePointer_rel4
 	E8 %J                       ; CALLI32 %StorePointer       ; Do Common
 	4829D0                      ; SUB_RDX_from_RAX            ; target - ip
-	48890425 CF056000           ; STORE32_from_RAX_into_ABS32 &table ; put value in output
 	BA 04000000                 ; LOADI32_RDX %4              ; set the size of chars we want
 	E8 %z                       ; CALLI32 %print_chars
 	E8 %H                       ; CALLI32 %ClearScratch       ; Clean up after ourselves
@@ -553,7 +554,6 @@ CF 05 00 00 00 00 00 00 ## p_memsz
 :M # :StorePointer_rel2
 	E8 %J                       ; CALLI32 %StorePointer       ; Do Common
 	4829D0                      ; SUB_RDX_from_RAX            ; target - ip
-	48890425 CF056000           ; STORE32_from_RAX_into_ABS32 &table ; put value in output
 	BA 02000000                 ; LOADI32_RDX %2              ; set the size of chars we want
 	E8 %z                       ; CALLI32 %print_chars
 	E8 %H                       ; CALLI32 %ClearScratch       ; Clean up after ourselves
@@ -562,7 +562,6 @@ CF 05 00 00 00 00 00 00 ## p_memsz
 :N # :StorePointer_rel1
 	E8 %J                       ; CALLI32 %StorePointer       ; Do Common
 	4829D0                      ; SUB_RDX_from_RAX            ; target - ip
-	48890425 CF056000           ; STORE32_from_RAX_into_ABS32 &table ; put value in output
 	BA 01000000                 ; LOADI32_RDX %1              ; set the size of chars we want
 	E8 %z                       ; CALLI32 %print_chars
 	E8 %H                       ; CALLI32 %ClearScratch       ; Clean up after ourselves
@@ -570,7 +569,6 @@ CF 05 00 00 00 00 00 00 ## p_memsz
 
 :O # :StorePointer_abs4
 	E8 %J                       ; CALLI32 %StorePointer       ; Do Common
-	48890425 CF056000           ; STORE32_from_RAX_into_ABS32 &table ; put value in output
 	BA 04000000                 ; LOADI32_RDX %4              ; set the size of chars we want
 	E8 %z                       ; CALLI32 %print_chars
 	E8 %H                       ; CALLI32 %ClearScratch       ; Clean up after ourselves
@@ -578,7 +576,6 @@ CF 05 00 00 00 00 00 00 ## p_memsz
 
 :P # :StorePointer_abs2
 	E8 %J                       ; CALLI32 %StorePointer       ; Do Common
-	48890425 CF056000           ; STORE32_from_RAX_into_ABS32 &table ; put value in output
 	BA 02000000                 ; LOADI32_RDX %2              ; set the size of chars we want
 	E8 %z                       ; CALLI32 %print_chars
 	E8 %H                       ; CALLI32 %ClearScratch       ; Clean up after ourselves
@@ -591,7 +588,7 @@ CF 05 00 00 00 00 00 00 ## p_memsz
 	0F05                        ; SYSCALL                     ; Call it a good day
 
 
-:S # :write (C7056000)
+:S # :write
 	00000000            ; NULL
 	00000000            ; NULL
 

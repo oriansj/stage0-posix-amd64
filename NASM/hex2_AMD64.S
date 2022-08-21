@@ -365,12 +365,14 @@ Read_byte_1:
 	ret
 
 print_chars:
-	mov rsi, table              ; What we are writing
+	push rax                    ; Push address of chars onto stack
+	mov rsi, rsp                ; What we are writing
 	mov rdi, r10                ; Write to target file
 	mov rax, 1                  ; the syscall number for write
 	push r11                    ; Protect HEAD
 	syscall                     ; call the Kernel
 	pop r11                     ; Restore HEAD
+	pop rax                     ; deallocate stack
 	ret
 
 	;; Receives pointer in RBX
@@ -497,7 +499,6 @@ StorePointer_done:
 StorePointer_rel4:
 	call StorePointer           ; Do Common
 	sub rax, rdx                ; target - ip
-	mov [table], rax            ; put value in output
 	mov rdx,  4                 ; set the size of chars we want
 	call print_chars
 	call ClearScratch           ; Clean up after ourselves
@@ -506,7 +507,6 @@ StorePointer_rel4:
 StorePointer_rel2:
 	call StorePointer           ; Do Common
 	sub rax, rdx                ; target - ip
-	mov [table], rax            ; put value in output
 	mov rdx, 2                  ; set the size of chars we want
 	call print_chars
 	call ClearScratch           ; Clean up after ourselves
@@ -515,7 +515,6 @@ StorePointer_rel2:
 StorePointer_rel1:
 	call StorePointer           ; Do Common
 	sub rax, rdx                ; target - ip
-	mov [table], rax            ; put value in output
 	mov rdx, 1                  ; set the size of chars we want
 	call print_chars
 	call ClearScratch           ; Clean up after ourselves
@@ -523,7 +522,6 @@ StorePointer_rel1:
 
 StorePointer_abs4:
 	call StorePointer           ; Do Common
-	mov [table], rax            ; put value in output
 	mov rdx, 4                  ; set the size of chars we want
 	call print_chars
 	call ClearScratch           ; Clean up after ourselves
@@ -531,7 +529,6 @@ StorePointer_abs4:
 
 StorePointer_abs2:
 	call StorePointer           ; Do Common
-	mov [table], rax            ; put value in output
 	mov rdx, 2                  ; set the size of chars we want
 	call print_chars
 	call ClearScratch           ; Clean up after ourselves
