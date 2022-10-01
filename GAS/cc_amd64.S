@@ -135,15 +135,7 @@ fix_type:
     add rbx, rax                # Get NEXT
     mov [rax], rbx              # Store NEXT
 
-    # Go to next type, first try INDIRECT, then NEXT
-    cmp rax, [rax+24]           # Compare NEXT and INDIRECT
-    je fix_type_no_indirect
-
-    mov rax, [rax+24]           # Go to INDIRECT type
-    jmp fix_type
-
-fix_type_no_indirect:
-    mov rax, [rax]              # Go to NEXT type
+    add rax, 56                 # Go to next type
     jmp fix_type
 
 fix_types_done:
@@ -4570,7 +4562,6 @@ type_void:
     .quad 0                              # MEMBERS
     .quad type_void - type_void          # TYPE
     .quad type_void_name - type_void     # NAME
-type_void_name: .asciz "void"
 
 type_int:
     .quad type_char - type_int           # NEXT
@@ -4580,7 +4571,6 @@ type_int:
     .quad 0                              # MEMBERS
     .quad type_int - type_int            # TYPE
     .quad type_int_name - type_int       # NAME
-type_int_name: .asciz "int"
 
 type_char:
     .quad type_file - type_char          # NEXT
@@ -4590,7 +4580,6 @@ type_char:
     .quad 0                              # MEMBERS
     .quad type_char - type_char          # TYPE
     .quad type_char_name - type_char     # NAME
-type_char_name: .asciz "char"
 
 type_char_indirect:
     .quad type_file - type_char_indirect                 # NEXT
@@ -4600,7 +4589,6 @@ type_char_indirect:
     .quad 0                                              # MEMBERS
     .quad type_char_indirect - type_char_indirect        # TYPE
     .quad type_char_indirect_name - type_char_indirect   # NAME
-type_char_indirect_name: .asciz "char*"
 
 type_char_double_indirect:
     .quad type_file - type_char_double_indirect                      # NEXT
@@ -4610,7 +4598,6 @@ type_char_double_indirect:
     .quad 0                                                          # MEMBERS
     .quad type_char_indirect - type_char_double_indirect             # TYPE
     .quad type_char_double_indirect_name - type_char_double_indirect # NAME
-type_char_double_indirect_name: .asciz "char**"
 
 type_file:
     .quad type_function - type_file          # NEXT
@@ -4620,7 +4607,6 @@ type_file:
     .quad 0                                  # MEMBERS
     .quad type_file - type_file              # TYPE
     .quad type_file_name - type_file         # NAME
-type_file_name: .asciz "FILE"
 
 type_function:
     .quad type_unsigned - type_function      # NEXT
@@ -4630,7 +4616,6 @@ type_function:
     .quad 0                                  # MEMBERS
     .quad type_function - type_function      # TYPE
     .quad type_function_name - type_function # NAME
-type_function_name: .asciz "FUNCTION"
 
 type_unsigned:
     .quad type_long - type_unsigned          # NEXT
@@ -4640,7 +4625,6 @@ type_unsigned:
     .quad 0                                  # MEMBERS
     .quad type_unsigned - type_unsigned      # TYPE
     .quad type_unsigned_name - type_unsigned # NAME
-type_unsigned_name: .asciz "unsigned"
 
 type_long:
     .quad 0                                  # NEXT
@@ -4650,8 +4634,16 @@ type_long:
     .quad 0                                  # MEMBERS
     .quad type_long - type_long              # TYPE
     .quad type_long_name - type_long         # NAME
-type_long_name: .asciz "long"
 
+type_void_name: .asciz "void"
+type_int_name: .asciz "int"
+type_char_name: .asciz "char"
+type_char_indirect_name: .asciz "char*"
+type_char_double_indirect_name: .asciz "char**"
+type_file_name: .asciz "FILE"
+type_function_name: .asciz "FUNCTION"
+type_unsigned_name: .asciz "unsigned"
+type_long_name: .asciz "long"
 
 Address_of: .quad 0
 C: .quad 0
