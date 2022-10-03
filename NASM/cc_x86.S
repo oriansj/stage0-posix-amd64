@@ -953,7 +953,7 @@ statement_if:
 	jmp statement_done          ; be done
 
 statement_do:
-	mov rax, do_string          ; Using "do
+	mov rax, do_string          ; Using "do"
 	call match                  ; IF global_token->S == "do"
 	cmp rax, 0                  ; then we have a do statement
 	jne statement_while         ; otherwise try WHILE
