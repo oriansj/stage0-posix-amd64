@@ -16,27 +16,27 @@
 
 :_start
 
-	COPY_rsp_to_rbp             ; Protect rsp
+	mov_rbp,rsp                 ; Protect rsp
 
 	;; Prepare argv
-	LOAD_BASE_ADDRESS_rax %8    ; ARGV_address = RBP + 8
-	PUSH_RAX                    ; Put argv on the stack
+	lea_rax,[rbp+DWORD] %8      ; ARGV_address = RBP + 8
+	push_rax                    ; Put argv on the stack
 
 	;; Prepare envp
-	COPY_rbp_to_rax             ; Address we need to load from
-	LOAD_INTEGER                ; Get ARGC
-	ADD_IMMEDIATE_to_rax %2     ; OFFSET = ARGC + 2
-	SAL_rax_Immediate8 !3       ; OFFSET = OFFSET * WORDSIZE
-	ADD_rbp_to_rax              ; ENVP_address = RSP + OFFSET
-	PUSH_RAX                    ; Put envp on the stack
+	mov_rax,rbp                 ; Address we need to load from
+	mov_rax,[rax]               ; Get ARGC
+	add_rax, %2                 ; OFFSET = ARGC + 2
+	sal_rax, !3                 ; OFFSET = OFFSET * WORDSIZE
+	add_rax,rbp                 ; ENVP_address = RSP + OFFSET
+	push_rax                    ; Put envp on the stack
 
 	;; Stack offset
-	ADD_IMMEDIATE_to_rbp %8     ; Fix rbp
+	add_rbp, %8                 ; Fix rbp
 
 	;; Perform the main loop
-	CALL_IMMEDIATE %FUNCTION_main
+	call %FUNCTION_main
 
 	;; Exit to kernel
-	COPY_rax_to_rdi             ; Using the return code given by main
-	LOAD_IMMEDIATE_rax %0x3C    ; Syscall exit
-	SYSCALL                     ; Exit with that code
+	mov_rdi,rax                 ; Using the return code given by main
+	mov_rax, %0x3C              ; Syscall exit
+	syscall                     ; Exit with that code

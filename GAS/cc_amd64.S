@@ -542,7 +542,7 @@ fgetc:
     mov rdi, r15                # Where are we reading from
     mov rax, 0                  # the syscall number for read
     push rdx                    # Protect RDX
-    mov rdx,  1                 # set the size of chars we want
+    mov rdx, 1                  # set the size of chars we want
     push rcx                    # Protect RCX
     push r11                    # Protect R11
     syscall                     # call the Kernel
