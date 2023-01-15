@@ -2,10 +2,6 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-### elf64.hex2: 64 bit elf header in hex2
-### if you wish to use this header, you need to add :ELF_end to the end of your
-### M1 or hex2 files.
-
 ## ELF Header
 
 :ELF_base
