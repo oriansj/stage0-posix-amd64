@@ -1,329 +1,306 @@
-## Copyright (C) 2017 Jeremiah Orians
-## This file is part of stage0.
-##
-## stage0 is free software: you can redistribute it and/or modify
-## it under the terms of the GNU General Public License as published by
-## the Free Software Foundation, either version 3 of the License, or
-## (at your option) any later version.
-##
-## stage0 is distributed in the hope that it will be useful,
-## but WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-## GNU General Public License for more details.
-##
-## You should have received a copy of the GNU General Public License
-## along with stage0.  If not, see <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: 2017 Jeremiah Orians <jeremiah@pdp10.guru>
+# SPDX-FileCopyrightText: 2023 Andrius Štikonas <andrius@stikonas.eu>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-DEFINE ADDI32_to_R13 4981C5
-DEFINE ADDI32_to_RAX 4805
-DEFINE ADD_R14_to_RAX 4C01F0
-DEFINE ADD_RAX_R14 4C01F0
-DEFINE CALLI32 E8
-DEFINE CMPI32_R15 4981FF
-DEFINE CMPI32_RAX 483D
-DEFINE CMP_R15_Immediate8 4983FF
-DEFINE CMP_RAX_Immediate8 4883F8
-DEFINE COPY_R9_to_RDI 4C89CF
-DEFINE COPY_R10_to_RDI 4C89D7
-DEFINE COPY_RAX_to_R14 4989C6
-DEFINE COPY_RAX_to_R9 4989C1
-DEFINE COPY_RAX_to_R10 4989C2
-DEFINE JE32 0F84
-DEFINE JE8 74
-DEFINE JGE8 7D
-DEFINE JL32 0F8C
-DEFINE JL8 7C
-DEFINE JMP32 E9
-DEFINE JMP8 EB
-DEFINE JNE32 0F85
-DEFINE JNE8 75
-DEFINE LOAD32_Address_in_RAX_into_RAX 678B00
-DEFINE LOAD8_al_Absolute32 8A0425
-DEFINE LOADI32_R13 49C7C5
-DEFINE LOADI32_R14 49C7C6
-DEFINE LOADI32_R15 49C7C7
-DEFINE LOADI32_RAX 48C7C0
-DEFINE LOADI32_RDI 48C7C7
-DEFINE LOADI32_RDX 48C7C2
-DEFINE LOADI32_RSI 48C7C6
-DEFINE MOVE_R14_RAX 4989C6
-DEFINE MOVZBQ_RAX_AL 480FB6C0
-DEFINE NOT_R15 49F7D7
-DEFINE NULL 00000000
-DEFINE POP_RAX 58
-DEFINE POP_RDI 5F
-DEFINE RET C3
-DEFINE RETQ C3
-DEFINE SHL8_R14 49C1E6
-DEFINE SHL8_RAX 48C1E0
-DEFINE SHL_R14_Immediate8 49C1E6
-DEFINE STORE32_R13_to_Address_in_RAX 4C8928
-DEFINE STORE32_RAX_Absolute32 890425
-DEFINE STORE8_al_Absolute32 880425
-DEFINE SUBI8_from_RAX 4883E8
-DEFINE SUB_R13_from_RAX 4C29E8
-DEFINE SUB_RAX_Immediate8 4883E8
-DEFINE SYSCALL 0F05
-DEFINE TEST_RAX_RAX 4885C0
+DEFINE add_rax, 4805
+DEFINE add_r13, 4983C5
+DEFINE add_rax,r14 4C01F0
+DEFINE call E8
+DEFINE cmp_al, 3C
+DEFINE cmp_r15, 4983FF
+DEFINE je8 74
+DEFINE jl8 7C
+DEFINE jmp E9
+DEFINE jmp8 EB
+DEFINE jne8 75
+DEFINE lea_rsi,[rip+DWORD] 488D35
+DEFINE mov_rax, 48C7C0
+DEFINE mov_rdi, 48C7C7
+DEFINE mov_rdx, 48C7C2
+DEFINE mov_rsi, 48C7C6
+DEFINE mov_r13, 49C7C5
+DEFINE mov_r14, 49C7C6
+DEFINE mov_r15, 49C7C7
+DEFINE mov_rdi,r9 4C89CF
+DEFINE mov_rdi,r10 4C89D7
+DEFINE mov_r9,rax 4989C1
+DEFINE mov_r10,rax 4989C2
+DEFINE mov_r14,rax 4989C6
+DEFINE mov_[rax],r13 4C8928
+DEFINE mov_rax,[rax] 488B00
+DEFINE mov_[rip+DWORD],al 8805
+DEFINE mov_[rip+DWORD],rax 488905
+DEFINE mov_al,[rip+DWORD] 8A05
+DEFINE movzx_rax,al 480FB6C0
+DEFINE not_r15 49F7D7
+DEFINE pop_rax 58
+DEFINE pop_rdi 5F
+DEFINE ret C3
+DEFINE shl_rax, 48C1E0
+DEFINE shl_r14, 49C1E6
+DEFINE sub_rax, 4883E8
+DEFINE sub_rax,r13 4C29E8
+DEFINE syscall 0F05
+DEFINE test_rax,rax 4885C0
 
 # Where the ELF Header is going to hit
 # Simply jump to _start
 # Our main function
 :_start
-	POP_RAX                     # Get the number of arguments
-	POP_RDI                     # Get the program name
-	POP_RDI                     # Get the actual input name
-	LOADI32_RSI %0              # prepare read_only
-	LOADI32_RAX %2              # the syscall number for open()
-	SYSCALL                     # Now open that damn file
-	COPY_RAX_to_R9              # Preserve the file pointer we were given
+	pop_rax                     # Get the number of arguments
+	pop_rdi                     # Get the program name
+	pop_rdi                     # Get the actual input name
+	mov_rsi, %0                 # prepare read_only
+	mov_rax, %2                 # the syscall number for open()
+	syscall                     # Now open that damn file
+	mov_r9,rax                  # Preserve the file pointer we were given
 
-	POP_RDI                     # Get the actual output name
-	LOADI32_RSI %577            # Prepare file as O_WRONLY|O_CREAT|O_TRUNC
-	LOADI32_RDX %448            # Prepare file as RWX for owner only (700 in octal)
-	LOADI32_RAX %2              # the syscall number for open()
-	SYSCALL                     # Now open that damn file
-	COPY_RAX_to_R10             # Preserve the file pointer we were given
+	pop_rdi                     # Get the actual output name
+	mov_rsi, %577               # Prepare file as O_WRONLY|O_CREAT|O_TRUNC
+	mov_rdx, %448               # Prepare file as RWX for owner only (700 in octal)
+	mov_rax, %2                 # the syscall number for open()
+	syscall                     # Now open that damn file
+	mov_r10,rax                 # Preserve the file pointer we were given
 
-	LOADI32_R15 %-1             # Our flag for byte processing
-	LOADI32_R14 %0              # temp storage for the sum
-	LOADI32_R13 %0              # Our starting IP
-	CALLI32 %First_pass         # Process it
+	mov_r15, %-1                # Our flag for byte processing
+	mov_r14, %0                 # temp storage for the sum
+	mov_r13, %0                 # Our starting IP
+	call %First_pass            # Process it
 
 	# rewind input file
-	COPY_R9_to_RDI              # Using our input file
-	LOADI32_RSI %0              # Offset Zero
-	LOADI32_RDX %0              # Whence Zero
-	LOADI32_RAX %8              # lseek
-	SYSCALL
+	mov_rdi,r9                  # Using our input file
+	mov_rsi, %0                 # Offset Zero
+	mov_rdx, %0                 # Whence Zero
+	mov_rax, %8                 # lseek
+	syscall
 
-	LOADI32_R15 %-1             # Our flag for byte processing
-	LOADI32_R14 %0              # temp storage for the sum
-	LOADI32_R13 %0              # Our starting IP
-	CALLI32 %Second_pass        # Process it
+	mov_r15, %-1                # Our flag for byte processing
+	mov_r14, %0                 # temp storage for the sum
+	mov_r13, %0                 # Our starting IP
+	call %Second_pass           # Process it
 
-	JMP32 %Done
+	jmp %Done
 
 :First_pass
-	CALLI32 %Read_byte
+	call %Read_byte
 
 	# Deal with EOF
-	CMPI32_RAX %-4
-	JE32 %First_pass_done
+	cmp_al, !-4
+	je8 !First_pass_done
 
 	# Check for :
-	CMPI32_RAX %0x3a
-	JNE32 %First_pass_0
+	cmp_al, !0x3a
+	jne8 !First_pass_0
 
 	# Deal with label
-	CALLI32 %StoreLabel
+	call %StoreLabel
 
 :First_pass_0
 	# Check for %
-	CMPI32_RAX %0x25
-	JE32 %First_pass_pointer
+	cmp_al, !0x25
+	je8 !First_pass_pointer
 
 	# Deal with everything else
-	CALLI32 %hex                # Process our char
+	call %hex                   # Process our char
 
 	# Deal with EOF
-	CMPI32_RAX %-4
-	JE32 %First_pass_done
+	cmp_al, !-4
+	je8 !First_pass_done
 
 	# deal with -1 values
-	CMPI32_RAX %0
-	JL32 %First_pass
+	cmp_al, !0
+	jl8 !First_pass
 
 	# deal with toggle
-	CMPI32_R15 %0
-	JE32 %First_pass_1
-	ADDI32_to_R13 %1            # Increment IP
+	cmp_r15, !0
+	je8 !First_pass_1
+	add_r13, !1                 # Increment IP
 
 :First_pass_1
-	NOT_R15
-	JMP32 %First_pass
+	not_r15
+	jmp8 !First_pass
 
 :First_pass_pointer
 	# Deal with Pointer to label
-	CALLI32 %Read_byte          # Drop the char
-	ADDI32_to_R13 %4            # Increment IP
-	JMP32 %First_pass           # Loop again
+	call %Read_byte             # Drop the char
+	add_r13, !4                 # Increment IP
+	jmp8 !First_pass            # Loop again
 
 :First_pass_done
-	RET
+	ret
 
 :hex
 	# deal with EOF
-	CMPI32_RAX %-4
-	JE32 %EOF
+	cmp_al, !-4
+	je8 !EOF
 	# deal with line comments starting with #
-	CMPI32_RAX %0x23
-	JE32 %ascii_comment
+	cmp_al, !0x23
+	je8 !ascii_comment
 	# deal with line comments starting with ;
-	CMPI32_RAX %0x3b
-	JE32 %ascii_comment
+	cmp_al, !0x3b
+	je8 !ascii_comment
 	# deal all ascii less than 0
-	CMPI32_RAX %0x30
-	JL32 %ascii_other
+	cmp_al, !0x30
+	jl8 !ascii_other
 	# deal with 0-9
-	CMPI32_RAX %0x3a
-	JL32 %ascii_num
+	cmp_al, !0x3a
+	jl8 !ascii_num
 	# deal with all ascii less than A
-	CMPI32_RAX %0x41
-	JL32 %ascii_other
+	cmp_al, !0x41
+	jl8 !ascii_other
 	# deal with A-F
-	CMPI32_RAX %0x47
-	JL32 %ascii_high
+	cmp_al, !0x47
+	jl8 !ascii_high
 	# deal with all ascii less than a
-	CMPI32_RAX %0x61
-	JL32 %ascii_other
+	cmp_al, !0x61
+	jl8 !ascii_other
 	# deal with a-f
-	CMPI32_RAX %0x67
-	JL32 %ascii_low
+	cmp_al, !0x67
+	jl8 !ascii_low
 	# The rest that remains needs to be ignored
-	JMP32 %ascii_other
+	jmp8 !ascii_other
 
 :Second_pass
-	CALLI32 %Read_byte
+	call %Read_byte
 
 	# Deal with EOF
-	CMPI32_RAX %-4
-	JE32 %Second_pass_done
+	cmp_al, !-4
+	je8 !Second_pass_done
 
 	# Simply drop the label
-	CMPI32_RAX %0x3a
-	JNE32 %Second_pass_0
+	cmp_al, !0x3a
+	jne8 !Second_pass_0
 
-	CALLI32 %Read_byte
-	JMP32 %Second_pass
+	call %Read_byte
+	jmp8 !Second_pass
 
 :Second_pass_0
 	# Deal with % pointer
-	CMPI32_RAX %0x25
-	JNE32 %Second_pass_1
+	cmp_al, !0x25
+	jne8 !Second_pass_1
 
-	CALLI32 %StorePointer
-	JMP32 %Second_pass
+	call %StorePointer
+	jmp8 !Second_pass
 
 :Second_pass_1
 	# Deal with everything else
-	CALLI32 %hex                # Process our char
+	call %hex                   # Process our char
 
 	# Deal with EOF
-	CMPI32_RAX %-4
-	JE32 %Second_pass_done
+	cmp_al, !-4
+	je8 !Second_pass_done
 
 	# deal with -1 values
-	CMPI32_RAX %0
-	JL32 %Second_pass
+	cmp_al, !0
+	jl8 !Second_pass
 
 	# deal with toggle
-	CMPI32_R15 %0
-	JE32 %print
+	cmp_r15, !0
+	je8 !print
 
 	# process first byte of pair
-	COPY_RAX_to_R14
-	LOADI32_R15 %0
-	JMP32 %Second_pass
+	mov_r14,rax
+	mov_r15, %0
+	jmp8 !Second_pass
 
 :Second_pass_done
-	RET
-
 :EOF
-	RET
+	ret
 :ascii_num
-	SUBI8_from_RAX !0x30
-	RET
+	sub_rax, !0x30
+	ret
 :ascii_low
-	SUBI8_from_RAX !0x57
-	RET
+	sub_rax, !0x57
+	ret
 :ascii_high
-	SUBI8_from_RAX !0x37
-	RET
+	sub_rax, !0x37
+	ret
 :ascii_other
-	LOADI32_RAX %-1
-	RET
+	mov_rax, %-1
+	ret
 :ascii_comment
-	CALLI32 %Read_byte
-	CMPI32_RAX %0xd
-	JE32 %ascii_comment_cr
-	CMPI32_RAX %0xa
-	JNE32 %ascii_comment
+	call %Read_byte
+	cmp_al, !0xd
+	je8 !ascii_comment_cr
+	cmp_al, !0xa
+	jne8 !ascii_comment
 :ascii_comment_cr
-	LOADI32_RAX %-1
-	RET
+	mov_rax, %-1
+	ret
 
 # process second byte of pair
 :print
 	# update the sum and store in output
-	SHL8_R14 !4
-	ADD_R14_to_RAX
-	STORE8_al_Absolute32 &table
+	shl_r14, !4
+	add_rax,r14
+	mov_[rip+DWORD],al %table
 
 	# flip the toggle
-	NOT_R15
+	not_r15
 
 	# Print our first Hex
-	LOADI32_RDX %1              # set the size of chars we want
-	CALLI32 %print_chars
+	mov_rdx, %1                 # set the size of chars we want
+	call %print_chars
 
-	ADDI32_to_R13 %1            # Increment IP
-	JMP32 %Second_pass
+	add_r13, !1                 # Increment IP
+	jmp %Second_pass
 
 :Done
 	# program completed Successfully
-	LOADI32_RDI %0              # All is well
-	LOADI32_RAX %0x3c           # put the exit syscall number in eax
-	SYSCALL                     # Call it a good day
+	mov_rdi, %0                 # All is well
+	mov_rax, %0x3c              # put the exit syscall number in rax
+	syscall                     # Call it a good day
 
 :Read_byte
 	# Attempt to read 1 byte from STDIN
-	LOADI32_RDX %1              # set the size of chars we want
-	LOADI32_RSI &table          # Where to put it
-	COPY_R9_to_RDI              # Where are we reading from
-	LOADI32_RAX %0              # the syscall number for read
-	SYSCALL                     # call the Kernel
+	mov_rdx, %1                 # set the size of chars we want
+	lea_rsi,[rip+DWORD] %table  # Where to put it
+	mov_rdi,r9                  # Where are we reading from
+	mov_rax, %0                 # the syscall number for read
+	syscall                     # call the Kernel
 
-	TEST_RAX_RAX                # check what we got
-	JE32 %Read_byte_1           # Got EOF call it done
+	test_rax,rax                # check what we got
+	je8 !Read_byte_1            # Got EOF call it done
 
 	# load byte
-	LOAD8_al_Absolute32 &table  # load char
-	MOVZBQ_RAX_AL               # We have to zero extend it to use it
-	RET
+	mov_al,[rip+DWORD] %table   # load char
+	movzx_rax,al                # We have to zero extend it to use it
+	ret
 
 # Deal with EOF
 :Read_byte_1
-	LOADI32_RAX %-4             # Put EOF in rax
-	RET
+	mov_rax, %-4                 # Put EOF in rax
+	ret
 
 :print_chars
-	LOADI32_RSI &table           # What we are writing
-	COPY_R10_to_RDI              # Write to target file
-	LOADI32_RAX %1               # the syscall number for write
-	SYSCALL                      # call the Kernel
-	RET
+	lea_rsi,[rip+DWORD] %table   # What we are writing
+	mov_rdi,r10                  # Write to target file
+	mov_rax, %1                  # the syscall number for write
+	syscall                      # call the Kernel
+	ret
 
 :Get_table_target
-	CALLI32 %Read_byte          # Get single char label
-	SHL8_RAX !3                 # Each label in table takes 8 bytes to store
-	ADDI32_to_RAX &table        # Calculate offset
-	RET
+	call %Read_byte             # Get single char label
+	shl_rax, !3                 # Each label in table takes 8 bytes to store
+	add_rax, &table             # Calculate offset
+	ret
 
 :StoreLabel
-	CALLI32 %Get_table_target
-	STORE32_R13_to_Address_in_RAX # Write out pointer to table
-	RET
+	call %Get_table_target
+	mov_[rax],r13               # Write out pointer to table
+	ret
 
 :StorePointer
-	ADDI32_to_R13 %4            # Increment IP
-	CALLI32 %Get_table_target   # Get address of pointer
-	LOAD32_Address_in_RAX_into_RAX # Get pointer
-	SUB_R13_from_RAX            # target - ip
-	STORE32_RAX_Absolute32 &table # put value in output
-	LOADI32_RDX %4              # set the size of chars we want
-	CALLI32 %print_chars
-	RET
+	add_r13, !4                 # Increment IP
+	call %Get_table_target      # Get address of pointer
+	mov_rax,[rax]               # Get pointer
+	sub_rax,r13                 # target - ip
+	mov_[rip+DWORD],rax %table  # put value in output
+	mov_rdx, %4                 # set the size of chars we want
+	call %print_chars
+	ret
+
+:table
 
 :ELF_end
-:table
