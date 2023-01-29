@@ -3,8 +3,8 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-DEFINE add_rax, 4805
 DEFINE add_r13, 4983C5
+DEFINE add_rax,rcx 4801C8
 DEFINE add_rax,r14 4C01F0
 DEFINE call E8
 DEFINE cmp_al, 3C
@@ -14,7 +14,9 @@ DEFINE jl8 7C
 DEFINE jmp E9
 DEFINE jmp8 EB
 DEFINE jne8 75
+DEFINE lea_rcx,[rip+DWORD] 488D0D
 DEFINE lea_rsi,[rip+DWORD] 488D35
+DEFINE mov_al, B0
 DEFINE mov_rax, 48C7C0
 DEFINE mov_rdi, 48C7C7
 DEFINE mov_rdx, 48C7C2
@@ -39,10 +41,11 @@ DEFINE pop_rdi 5F
 DEFINE ret C3
 DEFINE shl_rax, 48C1E0
 DEFINE shl_r14, 49C1E6
-DEFINE sub_rax, 4883E8
+DEFINE sub_al, 2C
 DEFINE sub_rax,r13 4C29E8
 DEFINE syscall 0F05
 DEFINE test_rax,rax 4885C0
+DEFINE xor_eax,eax 31C0
 
 # Where the ELF Header is going to hit
 # Simply jump to _start
@@ -208,16 +211,16 @@ DEFINE test_rax,rax 4885C0
 :EOF
 	ret
 :ascii_num
-	sub_rax, !0x30
+	sub_al, !0x30
 	ret
 :ascii_low
-	sub_rax, !0x57
+	sub_al, !0x57
 	ret
 :ascii_high
-	sub_rax, !0x37
+	sub_al, !0x37
 	ret
 :ascii_other
-	mov_rax, %-1
+	mov_al, !-1
 	ret
 :ascii_comment
 	call %Read_byte
@@ -226,7 +229,7 @@ DEFINE test_rax,rax 4885C0
 	cmp_al, !0xa
 	jne8 !ascii_comment
 :ascii_comment_cr
-	mov_rax, %-1
+	mov_al, !-1
 	ret
 
 # process second byte of pair
@@ -257,7 +260,7 @@ DEFINE test_rax,rax 4885C0
 	mov_rdx, %1                 # set the size of chars we want
 	lea_rsi,[rip+DWORD] %table  # Where to put it
 	mov_rdi,r9                  # Where are we reading from
-	mov_rax, %0                 # the syscall number for read
+	xor_eax,eax                 # the syscall number for read
 	syscall                     # call the Kernel
 
 	test_rax,rax                # check what we got
@@ -270,25 +273,27 @@ DEFINE test_rax,rax 4885C0
 
 # Deal with EOF
 :Read_byte_1
-	mov_rax, %-4                 # Put EOF in rax
+	mov_al, !-4                 # Put EOF in rax
 	ret
 
 :print_chars
-	lea_rsi,[rip+DWORD] %table   # What we are writing
-	mov_rdi,r10                  # Write to target file
-	mov_rax, %1                  # the syscall number for write
-	syscall                      # call the Kernel
+	lea_rsi,[rip+DWORD] %table  # What we are writing
+	mov_rdi,r10                 # Write to target file
+	mov_rax, %1                 # the syscall number for write
+	syscall                     # call the Kernel
 	ret
 
 :Get_table_target
 	call %Read_byte             # Get single char label
 	shl_rax, !3                 # Each label in table takes 8 bytes to store
-	add_rax, &table             # Calculate offset
+	lea_rcx,[rip+DWORD] %table  # Get table
+	add_rax,rcx                 # Calculate offset
 	ret
 
 :StoreLabel
 	call %Get_table_target
 	mov_[rax],r13               # Write out pointer to table
+	xor_eax,eax                 # wipe higher bits of rax, so that cmp al works
 	ret
 
 :StorePointer

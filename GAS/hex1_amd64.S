@@ -170,16 +170,16 @@ Second_pass_done:
 EOF:
 	ret
 ascii_num:
-	sub rax, 0x30
+	sub al, 0x30
 	ret
 ascii_low:
-	sub rax, 0x57
+	sub al, 0x57
 	ret
 ascii_high:
-	sub rax, 0x37
+	sub al, 0x37
 	ret
 ascii_other:
-	mov rax, -1
+	mov al, -1
 	ret
 ascii_comment:
 	call Read_byte
@@ -188,7 +188,7 @@ ascii_comment:
 	cmp al, 0xa
 	jne ascii_comment
 ascii_comment_cr:
-	mov rax, -1
+	mov al, -1
 	ret
 
 # process second byte of pair
@@ -232,7 +232,7 @@ Read_byte:
 
 # Deal with EOF
 Read_byte_1:
-	mov rax, -4                 # Put EOF in rax
+	mov al, -4                  # Put EOF in rax
 	ret
 
 print_chars:
@@ -245,12 +245,14 @@ print_chars:
 Get_table_target:
 	call Read_byte              # Get single char label
 	shl rax, 3                  # Each label in table takes 8 bytes to store
-	add rax, OFFSET table       # Calculate offset
+	lea rcx, [rip+table]        # Get table
+	add rax, rcx                # Calculate offset
 	ret
 
 StoreLabel:
 	call Get_table_target
 	mov [rax], r13              # Write out pointer to table
+	xor eax, eax                # wipe higher bits of rax, so that cmp al works
 	ret
 
 StorePointer:
@@ -259,7 +261,7 @@ StorePointer:
 	mov rax, [rax]              # Get pointer
 	sub rax, r13                # target - ip
 	mov [rip+table], rax        # put value in output
-	mov rdx,  4                 # set the size of chars we want
+	mov rdx, 4                  # set the size of chars we want
 	call print_chars
 	ret
 
