@@ -966,7 +966,7 @@ statement_label:
 
 statement_local:
     mov rax, rbx                # put global_token->S in the right place
-    lea rbx, [rip+prim_types]   # pointer to primative types
+    lea rbx, [rip+prim_types]   # pointer to primitive types
     call lookup_type            # See if found
     cmp rax, 0                  # IF NULL == lookup_type(global_token->S, prim_types)
     jne statement_local_success # Sweet a new local

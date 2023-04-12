@@ -1174,7 +1174,7 @@ NULL
 
 :statement_local
     mov_rax,rbx                               # put global_token->S in the right place
-    lea_rbx,[rip+DWORD] %prim_types           # pointer to primative types
+    lea_rbx,[rip+DWORD] %prim_types           # pointer to primitive types
     call %lookup_type                         # See if found
     cmp_rax, %0                               # IF NULL == lookup_type(global_token->S, prim_types)
     jne %statement_local_success              # Sweet a new local
