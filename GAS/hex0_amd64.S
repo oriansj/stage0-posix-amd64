@@ -164,7 +164,7 @@ Read_byte:
 Done:
 	# program completed Successfully
 	xor edi, edi                # All is well, rdi = 0
-	push 60                     # sycall number for exit is 60
+	push 60                     # syscall number for exit is 60
 	pop rax                     # put the exit syscall number in eax
 	syscall                     # Call it a good day
 

@@ -207,7 +207,7 @@
 #:Done (0x60011D)
 	# program completed Successfully
 	31FF                ; xor_edi,edi     # All is well, rdi = 0
-	6A 3C               ; push !60        # sycall number for exit is 60
+	6A 3C               ; push !60        # syscall number for exit is 60
 	58                  ; pop_rax         # put the exit syscall number in rax
 	0F05                ; syscall         # Call it a good day
 

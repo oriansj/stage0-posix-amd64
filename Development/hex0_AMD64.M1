@@ -197,7 +197,7 @@ DEFINE xor_esi,esi 31F6
 :Done
 	# program completed Successfully
 	xor_edi,edi                 # All is well, rdi = 0
-	push !60                    # sycall number for exit is 60
+	push !60                    # syscall number for exit is 60
 	pop_rax                     # put the exit syscall number in rax
 	syscall                     # Call it a good day
 
