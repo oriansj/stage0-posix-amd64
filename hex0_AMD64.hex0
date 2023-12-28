@@ -191,7 +191,7 @@
 	# Attempt to read 1 byte from STDIN
 	6A 01               ; push !1         # prepare to set rdx to 1
 	5A                  ; pop_rdx         # set the size of chars we want
-	57                  ; push_rdi        # allocate stack
+	55                  ; push_rbp        # allocate stack
 	4889E6              ; mov_rsi,rsp     # Where to put it
 	4C89CF              ; mov_rdi,r9      # Where are we reading from
 	31C0                ; xor_eax,eax     # the syscall number for read

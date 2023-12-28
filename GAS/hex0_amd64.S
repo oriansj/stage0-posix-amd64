@@ -148,7 +148,7 @@ Read_byte:
 	# Attempt to read 1 byte from STDIN
 	push 1                      # prepare to set rdx to 1
 	pop rdx                     # set the size of chars we want
-	push rdi                    # allocate stack
+	push rbp                    # allocate stack
 	mov rsi, rsp                # Where to put it
 	mov rdi, r9                 # Where are we reading from
 	xor eax, eax                # the syscall number for read, rax = 0

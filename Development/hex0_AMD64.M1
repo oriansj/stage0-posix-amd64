@@ -26,8 +26,8 @@ DEFINE pop_rdi 5F
 DEFINE pop_rdx 5A
 DEFINE push 6A
 DEFINE push_rax 50
+DEFINE push_rbp 55
 DEFINE push_rbx 53
-DEFINE push_rdi 57
 DEFINE ret C3
 DEFINE shl_ebp, C1E5
 DEFINE sub_al, 2C
@@ -181,7 +181,7 @@ DEFINE xor_esi,esi 31F6
 	# Attempt to read 1 byte from STDIN
 	push !1                     # prepare to set rdx to 1
 	pop_rdx                     # set the size of chars we want
-	push_rdi                    # allocate stack
+	push_rbp                    # allocate stack
 	mov_rsi,rsp                 # Where to put it
 	mov_rdi,r9                  # Where are we reading from
 	xor_eax,eax                 # the syscall number for read, rax = 0
