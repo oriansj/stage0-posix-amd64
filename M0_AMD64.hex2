@@ -28,14 +28,14 @@
     58                      ; pop_rax                     # Get the number of arguments
     5F                      ; pop_rdi                     # Get the program name
     5F                      ; pop_rdi                     # Get the actual input name
-    BE 00000000             ; mov_rsi, %0                 # prepare read_only
+    48C7C6 00000000         ; mov_rsi, %0                 # prepare read_only
     48C7C0 02000000         ; mov_rax, %2                 # the syscall number for open()
     0F05                    ; syscall                     # Now open that damn file
     4989C7                  ; mov_r15,rax                 # Preserve the file pointer we were given
 
     5F                      ; pop_rdi                     # Get the actual output name
-    BE 41020000             ; mov_rsi, %577               # Prepare file as O_WRONLY|O_CREAT|O_TRUNC
-    BA 80010000             ; mov_rdx, %384               # Prepare file as RW for owner only (600 in octal)
+    48C7C6 41020000         ; mov_rsi, %577               # Prepare file as O_WRONLY|O_CREAT|O_TRUNC
+    48C7C2 80010000         ; mov_rdx, %384               # Prepare file as RW for owner only (600 in octal)
     48C7C0 02000000         ; mov_rax, %2                 # the syscall number for open()
     0F05                    ; syscall                     # Now open that damn file
     483D 00000000           ; cmp_rax, %0                 # Check for missing output
@@ -46,7 +46,7 @@
     4989C6                  ; mov_r14,rax                 # Preserve the file pointer we were given
 
     48C7C0 0C000000         ; mov_rax, %12                # the Syscall # for SYS_BRK
-    BF 00000000             ; mov_rdi, %0                 # Get current brk
+    48C7C7 00000000         ; mov_rdi, %0                 # Get current brk
     0F05                    ; syscall                     # Let the kernel do the work
     4989C4                  ; mov_r12,rax                 # Set our malloc pointer
 
@@ -64,7 +64,7 @@
 
 :Done
     # program completed Successfully
-    BF 00000000             ; mov_rdi, %0                 # All is well
+    48C7C7 00000000         ; mov_rdi, %0                 # All is well
     48C7C0 3C000000         ; mov_rax, %0x3c              # put the exit syscall number in eax
     0F05                    ; syscall                     # Call it a good day
 
@@ -129,7 +129,7 @@
     4C89FF                  ; mov_rdi,r15                 # Where are we reading from
     48C7C0 00000000         ; mov_rax, %0                 # the syscall number for read
     52                      ; push_rdx                    # Protect RDX
-    BA 01000000             ; mov_rdx, %1                 # set the size of chars we want
+    48C7C2 01000000         ; mov_rdx, %1                 # set the size of chars we want
     4153                    ; push_r11                    # Protect r11
     0F05                    ; syscall                     # call the Kernel
     415B                    ; pop_r11                     # Restore r11
@@ -598,13 +598,13 @@
     74 !numerate_hex        ; je8 !numerate_hex           # Deal with hex input
 
     # Assume decimal input
-    BE 00000000             ; mov_rsi, %0                 # Assume no negation
+    48C7C6 00000000         ; mov_rsi, %0                 # Assume no negation
     8A0B                    ; mov_cl,[rbx]                # S[0]
     480FB6C9                ; movzx_rcx,cl                # make it useful
     4883F9 2D               ; cmp_rcx, %45                # IF '-' == S[0]
     75 !numerate_decimal    ; jne8 !numerate_decimal      # Skip negation
 
-    BE 01000000             ; mov_rsi, %1                 # Set FLAG
+    48C7C6 01000000         ; mov_rsi, %1                 # Set FLAG
     4883C3 01               ; add_rbx, %1                 # S = S + 1
 
 :numerate_decimal
@@ -834,7 +834,7 @@
     4C89F7                  ; mov_rdi,r14                 # Write to target file
     48C7C0 01000000         ; mov_rax, %1                 # the syscall number for write
     52                      ; push_rdx                    # Protect RDX
-    BA 01000000             ; mov_rdx, %1                 # set the size of chars we want
+    48C7C2 01000000         ; mov_rdx, %1                 # set the size of chars we want
     4153                    ; push_r11                    # Protect HEAD
     0F05                    ; syscall                     # call the Kernel
     415B                    ; pop_r11                     # Restore HEAD
