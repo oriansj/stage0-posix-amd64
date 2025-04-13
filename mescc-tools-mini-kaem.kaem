@@ -75,6 +75,7 @@
 	./M2-Planet/cc_reader.c \
 	./M2-Planet/cc_strings.c \
 	./M2-Planet/cc_types.c \
+	./M2-Planet/cc_emit.c \
 	./M2-Planet/cc_core.c \
 	./M2-Planet/cc_macro.c \
 	./M2-Planet/cc.c
@@ -130,11 +131,12 @@
 ./AMD64/artifact/M2 --architecture amd64 \
 	-f ./M2libc/sys/types.h \
 	-f ./M2libc/stddef.h \
-	-f ./M2libc/amd64/linux/fcntl.c \
-	-f ./M2libc/fcntl.c \
 	-f ./M2libc/sys/utsname.h \
 	-f ./M2libc/amd64/linux/unistd.c \
+	-f ./M2libc/amd64/linux/fcntl.c \
+	-f ./M2libc/fcntl.c \
 	-f ./M2libc/amd64/linux/sys/stat.c \
+	-f ./M2libc/ctype.c \
 	-f ./M2libc/stdlib.c \
 	-f ./M2libc/stdarg.h \
 	-f ./M2libc/stdio.h \
@@ -172,9 +174,10 @@
 	-f ./M2libc/fcntl.c \
 	-f ./M2libc/sys/utsname.h \
 	-f ./M2libc/amd64/linux/unistd.c \
-	-f ./M2libc/string.c \
-	-f ./M2libc/stdlib.c \
 	-f ./M2libc/stdarg.h \
+	-f ./M2libc/string.c \
+	-f ./M2libc/ctype.c \
+	-f ./M2libc/stdlib.c \
 	-f ./M2libc/stdio.h \
 	-f ./M2libc/stdio.c \
 	-f ./M2libc/bootstrappable.c \
@@ -206,11 +209,12 @@
 ./AMD64/artifact/M2 --architecture amd64 \
 	-f ./M2libc/sys/types.h \
 	-f ./M2libc/stddef.h \
-	-f ./M2libc/amd64/linux/fcntl.c \
-	-f ./M2libc/fcntl.c \
 	-f ./M2libc/sys/utsname.h \
 	-f ./M2libc/amd64/linux/unistd.c \
+	-f ./M2libc/amd64/linux/fcntl.c \
+	-f ./M2libc/fcntl.c \
 	-f ./M2libc/amd64/linux/sys/stat.c \
+	-f ./M2libc/ctype.c \
 	-f ./M2libc/stdlib.c \
 	-f ./M2libc/stdarg.h \
 	-f ./M2libc/stdio.h \
@@ -247,12 +251,13 @@
 ./AMD64/artifact/M2 --architecture amd64 \
 	-f ./M2libc/sys/types.h \
 	-f ./M2libc/stddef.h \
-	-f ./M2libc/string.c \
-	-f ./M2libc/amd64/linux/fcntl.c \
-	-f ./M2libc/fcntl.c \
 	-f ./M2libc/sys/utsname.h \
 	-f ./M2libc/amd64/linux/unistd.c \
+	-f ./M2libc/amd64/linux/fcntl.c \
+	-f ./M2libc/fcntl.c \
+	-f ./M2libc/ctype.c \
 	-f ./M2libc/stdlib.c \
+	-f ./M2libc/string.c \
 	-f ./M2libc/stdarg.h \
 	-f ./M2libc/stdio.h \
 	-f ./M2libc/stdio.c \
