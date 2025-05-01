@@ -648,6 +648,10 @@ fputc:
     pop rax                     # Restore stack
     ret
 
+enum_error_open_curly: .asciz "ERROR in enum\nExpected {\n"
+enum_error_equal: .asciz "ERROR in enum\nExpected =\n"
+enum_error_close_curly: .asciz "ERROR in enum\nExpected }\n"
+enum_error_semi_colon: .asciz "ERROR in enum\nExpected ;\n"
 
 # program function
 # receives nothing, returns nothing
@@ -658,6 +662,80 @@ program:
     push rcx                    # Protect RCX
 
 new_type:
+    mov rax, [rip+global_token] # Using global_token
+    cmp rax, 0                  # Check if NULL
+    je program_done             # Be done if null
+
+    mov rbx, [rax+16]           # GLOBAL_TOKEN->S
+    lea rax, [rip+enum]         # "enum"
+    call match                  # IF GLOBAL_TOKEN->S == "enum"
+    cmp rax, 0                  # If true
+    jne constant_value          # Looks like not an enum
+
+    # Deal with minimal anonymous enums
+    mov rax, [rip+global_token]           # Using global_token
+    mov rax, [rax]                        # global_token->next
+    mov [rip+global_token], rax           # global_token = global_token->next
+
+    lea rax, [rip+enum_error_open_curly]  # Using "ERROR in enum\nExpected {\n"
+    lea rbx, [rip+open_curly_brace]       # Using "{"
+    call require_match                    # Require match and skip
+
+enumerator:
+    mov rax, [rip+global_token]           # Using global token
+    mov rax, [rax+16]                     # global_token->s
+    mov rbx, 0                            # NULL
+    mov rcx, [rip+global_constant_list]   # global_constant_list
+    call sym_declare                      # Declare the constant
+    mov [rip+global_constant_list], rax   # global_constant_list = sym_declare(global_token->s, NULL, global_constant_list);
+
+    mov rax, [rip+global_token]           # Using global_token
+    mov rax, [rax]                        # global_token->next
+    mov [rip+global_token], rax           # global_token = global_token->next
+
+    lea rax, [rip+enum_error_equal]       # Using "ERROR in enum\nExpected =\n"
+    lea rbx, [rip+equal]                  # Using "="
+    call require_match                    # Require match and skip
+
+    mov rbx, [rip+global_token]           # Using global_token
+    mov rax, [rip+global_constant_list]   # Use global_constant_list
+    mov [rax+32], rbx                     # global_constant_list->arguments = global_token
+
+    mov rax, [rip+global_token]           # Using global_token
+    mov rax, [rax]                        # global_token->next
+    mov [rip+global_token], rax           # global_token = global_token->next
+
+    mov rax, [rip+global_token]           # Use global_token
+    mov rbx, [rax+16]                     # global_token->s
+    lea rax, [rip+comma]                  # ","
+    call match                            # IF global_token->s == ","
+    cmp rax, 0                            # If true
+    jne enum_end                          # No comma means no more enumerators
+
+    # Skip comma
+    mov rax, [rip+global_token]           # Using global_token
+    mov rax, [rax]                        # global_token->next
+    mov [rip+global_token], rax           # global_token = global_token->next
+
+    # Check if there are more enumerators or if it was a trailing comma
+    mov rbx, [rax+16]                     # global_token->s
+    lea rax, [rip+close_curly_brace]      # "}"
+    call match                            # IF global_token->s == "}"
+    cmp rax, 0                            # If true
+    jne enumerator                        # More enumerators
+
+enum_end:
+    lea rax, [rip+enum_error_close_curly] # Using "ERROR in enum\nExpected }\n"
+    lea rbx, [rip+close_curly_brace]      # Using "}"
+    call require_match                    # Require match and skip
+
+    lea rax, [rip+enum_error_semi_colon]  # Using "ERROR in enum\nExpected ;\n"
+    lea rbx, [rip+semicolon]              # Using ";"
+    call require_match                    # Require match and skip
+
+    jmp new_type                          # go around again
+
+constant_value:
     mov rax, [rip+global_token] # Using global_token
     cmp rax, 0                  # Check if NULL
     je program_done             # Be done if null
@@ -4501,6 +4579,7 @@ debug_list_string_null: .asciz ">::<NULL>::<"
 # Keywords
 union: .asciz "union"
 struct: .asciz "struct"
+enum: .asciz "enum"
 constant: .asciz "CONSTANT"
 main_string: .asciz "main"
 argc_string: .asciz "argc"

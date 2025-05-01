@@ -607,6 +607,10 @@ fputc:
 	pop rax                     ; Restore stack
 	ret
 
+enum_error_open_curly: db "ERROR in enum\nExpected {\n", 0
+enum_error_equal: db "ERROR in enum\nExpected =\n", 0
+enum_error_close_curly: db "ERROR in enum\nExpected }\n", 0
+enum_error_semi_colon: db "ERROR in enum\nExpected ;\n", 0
 
 ;; program function
 ;; receives nothing, returns nothing
@@ -617,6 +621,80 @@ program:
 	push rcx                    ; Protect RCX
 
 new_type:
+	mov rax, [global_token]     ; Using global_token
+	cmp rax, 0                  ; Check if NULL
+	je program_done             ; Be done if null
+
+	mov rbx, [rax+16]           ; GLOBAL_TOKEN->S
+	lea rax, [enum]             ; "enum"
+	call match                  ; IF GLOBAL_TOKEN->S == "enum"
+	cmp rax, 0                  ; If true
+	jne constant_value          ; Looks like not an enum
+
+	; Deal with minimal anonymous enums
+	mov rax, [global_token]           ; Using global_token
+	mov rax, [rax]                    ; global_token->next
+	mov [global_token], rax           ; global_token = global_token->next
+
+	lea rax, [enum_error_open_curly]  ; Using "ERROR in enum\nExpected {\n"
+	lea rbx, [open_curly_brace]       ; Using "{"
+	call require_match                ; Require match and skip
+
+enumerator:
+	mov rax, [global_token]           ; Using global token
+	mov rax, [rax+16]                 ; global_token->s
+	mov rbx, 0                        ; NULL
+	mov rcx, [global_constant_list]   ; global_constant_list
+	call sym_declare                  ; Declare the constant
+	mov [global_constant_list], rax   ; global_constant_list = sym_declare(global_token->s, NULL, global_constant_list);
+
+	mov rax, [global_token]           ; Using global_token
+	mov rax, [rax]                    ; global_token->next
+	mov [global_token], rax           ; global_token = global_token->next
+
+	lea rax, [enum_error_equal]       ; Using "ERROR in enum\nExpected =\n"
+	lea rbx, [equal]                  ; Using "="
+	call require_match                ; Require match and skip
+
+	mov rbx, [global_token]           ; Using global_token
+	mov rax, [global_constant_list]   ; Use global_constant_list
+	mov [rax+32], rbx                 ; global_constant_list->arguments = global_token
+
+	mov rax, [global_token]           ; Using global_token
+	mov rax, [rax]                    ; global_token->next
+	mov [global_token], rax           ; global_token = global_token->next
+
+	mov rax, [global_token]           ; Use global_token
+	mov rbx, [rax+16]                 ; global_token->s
+	lea rax, [comma]                  ; ","
+	call match                        ; IF global_token->s == ","
+	cmp rax, 0                        ; If true
+	jne enum_end                      ; No comma means no more enumerators
+
+	; Skip comma
+	mov rax, [global_token]           ; Using global_token
+	mov rax, [rax]                    ; global_token->next
+	mov [global_token], rax           ; global_token = global_token->next
+
+	; Check if there are more enumerators or if it was a trailing comma
+	mov rbx, [rax+16]                 ; global_token->s
+	lea rax, [close_curly_brace]      ; "}"
+	call match                        ; IF global_token->s == "}"
+	cmp rax, 0                        ; If true
+	jne enumerator                    ; More enumerators
+
+enum_end:
+	lea rax, [enum_error_close_curly] ; Using "ERROR in enum\nExpected }\n"
+	lea rbx, [close_curly_brace]      ; Using "}"
+	call require_match                ; Require match and skip
+
+	lea rax, [enum_error_semi_colon]  ; Using "ERROR in enum\nExpected ;\n"
+	lea rbx, [semicolon]              ; Using ";"
+	call require_match                ; Require match and skip
+
+	jmp new_type                      ; go around again
+
+constant_value:
 	mov rax, [global_token]     ; Using global_token
 	cmp rax, 0                  ; Check if NULL
 	je program_done             ; Be done if null
@@ -4375,6 +4453,7 @@ Exit_Failure:
 ;; Keywords
 union: db "union", 0
 struct: db "struct", 0
+enum: db "enum", 0
 constant: db "CONSTANT", 0
 main_string: db "main", 0
 argc_string: db "argc", 0

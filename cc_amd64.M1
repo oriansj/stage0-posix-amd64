@@ -841,6 +841,14 @@ DEFINE NULL 0000000000000000
     pop_rax                     # Restore stack
     ret
 
+:enum_error_open_curly
+"ERROR in enum\nExpected {\n"
+:enum_error_equal
+"ERROR in enum\nExpected =\n"
+:enum_error_close_curly
+"ERROR in enum\nExpected }\n"
+:enum_error_semi_colon
+"ERROR in enum\nExpected ;\n"
 
 # program function
 # receives nothing, returns nothing
@@ -851,6 +859,80 @@ DEFINE NULL 0000000000000000
     push_rcx                                  # Protect RCX
 
 :new_type
+    mov_rax,[rip+DWORD] %global_token         # Using global_token
+    cmp_rax, %0                               # Check if NULL
+    je %program_done                          # Be done if null
+
+    mov_rbx,[rax+BYTE] !16                      # GLOBAL_TOKEN->S
+    lea_rax,[rip+DWORD] %enum                   # "enum"
+    call %match                                 # IF GLOBAL_TOKEN->S == "enum"
+    cmp_rax, %0                                 # If true
+    jne %constant_value                         # Looks like not an enum
+
+    # Deal with minimal anonymous enums
+    mov_rax,[rip+DWORD] %global_token           # Using global_token
+    mov_rax,[rax]                               # global_token->next
+    mov_[rip+DWORD],rax %global_token           # global_token = global_token->next
+
+    lea_rax,[rip+DWORD] %enum_error_open_curly  # Using "ERROR in enum\nExpected {\n"
+    lea_rbx,[rip+DWORD] %open_curly_brace       # Using "{"
+    call %require_match                         # Require match and skip
+
+:enumerator
+    mov_rax,[rip+DWORD] %global_token           # Using global token
+    mov_rax,[rax+BYTE] !16                      # global_token->S
+    mov_rbx, %0                                 # NULL
+    mov_rcx,[rip+DWORD] %global_constant_list   # global_constant_list
+    call %sym_declare                           # Declare the constant
+    mov_[rip+DWORD],rax %global_constant_list   # global_constant_list = sym_declare(global_token->s, NULL, global_constant_list);
+
+    mov_rax,[rip+DWORD] %global_token           # Using global_token
+    mov_rax,[rax]                               # global_token->next
+    mov_[rip+DWORD],rax %global_token           # global_token = global_token->next
+
+    lea_rax,[rip+DWORD] %enum_error_equal       # Using "ERROR in enum\nExpected =\n"
+    lea_rbx,[rip+DWORD] %equal                  # Using "="
+    call %require_match                         # Require match and skip
+
+    mov_rbx,[rip+DWORD] %global_token           # Using global_token
+    mov_rax,[rip+DWORD] %global_constant_list   # Use global_constant_list
+    mov_[rax+BYTE],rbx !32                      # global_constant_list->arguments = global_token->next
+
+    mov_rax,[rip+DWORD] %global_token           # Using global_token
+    mov_rax,[rax]                               # global_token->next
+    mov_[rip+DWORD],rax %global_token           # global_token = global_token->next
+
+    mov_rbx,[rip+DWORD] %global_token           # Use global_token
+    mov_rbx,[rax+BYTE] !16                      # global_token->s
+    lea_rax,[rip+DWORD] %comma                  # ","
+    call %match                                 # IF global_token->s == ","
+    cmp_rax, %0                                 # If true
+    jne %enum_end                               # No comma means no more enumerators
+
+    # Skip comma
+    mov_rax,[rip+DWORD] %global_token           # Using global_token
+    mov_rax,[rax]                               # global_token->next
+    mov_[rip+DWORD],rax %global_token           # global_token = global_token->next
+
+    # Check if there are more enumerators or if it was a trailing comma
+    mov_rbx,[rax+BYTE] !16                      # global_token->s
+    lea_rax,[rip+DWORD] %close_curly_brace      # "}"
+    call %match                                 # IF global_token->s == "}"
+    cmp_rax, %0                                 # If true
+    jne %enumerator                             # More enumerators
+
+:enum_end
+    lea_rax,[rip+DWORD] %enum_error_close_curly # Using "ERROR in enum\nExpected }\n"
+    lea_rbx,[rip+DWORD] %close_curly_brace      # Using "}"
+    call %require_match                         # Require match and skip
+
+    lea_rax,[rip+DWORD] %enum_error_semi_colon  # Using "ERROR in enum\nExpected ;\n"
+    lea_rbx,[rip+DWORD] %semicolon              # Using ";"
+    call %require_match                         # Require match and skip
+
+    jmp %new_type                               # go around again
+
+:constant_value
     mov_rax,[rip+DWORD] %global_token         # Using global_token
     cmp_rax, %0                               # Check if NULL
     je %program_done                          # Be done if null
@@ -5166,6 +5248,9 @@ ARGUMENTS address: "
 
 :struct
 "struct"
+
+:enum
+"enum"
 
 :constant
 "CONSTANT"
