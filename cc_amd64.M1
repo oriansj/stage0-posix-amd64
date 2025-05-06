@@ -842,13 +842,21 @@ DEFINE NULL 0000000000000000
     ret
 
 :enum_error_open_curly
-"ERROR in enum\nExpected {\n"
+"ERROR in enum
+Expected {
+"
 :enum_error_equal
-"ERROR in enum\nExpected =\n"
+"ERROR in enum
+Expected =
+"
 :enum_error_close_curly
-"ERROR in enum\nExpected }\n"
+"ERROR in enum
+Expected }
+"
 :enum_error_semi_colon
-"ERROR in enum\nExpected ;\n"
+"ERROR in enum
+Expected ;
+"
 
 # program function
 # receives nothing, returns nothing
