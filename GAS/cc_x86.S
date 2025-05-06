@@ -1,5 +1,4 @@
 # Copyright (C) 2017 Jeremiah Orians
-# Copyright (C) 2022 Andrius Štikonas
 # This file is part of stage0.
 #
 # stage0 is free software: you can redistribute it and/or modify
@@ -542,7 +541,7 @@ fgetc:
     mov rdi, r15                # Where are we reading from
     mov rax, 0                  # the syscall number for read
     push rdx                    # Protect RDX
-    mov rdx, 1                  # set the size of chars we want
+    mov rdx,  1                 # set the size of chars we want
     push rcx                    # Protect RCX
     push r11                    # Protect R11
     syscall                     # call the Kernel
@@ -940,7 +939,7 @@ collect_arguments_loop:
     cmp rax, 0                  # is a foo(int, char,void) case
     je collect_arguments_common # deal with commas
 
-    # Trying second else
+	# Trying second else
     mov rbx, [rip+global_token] # Using global_token
     mov rbx, [rbx+16]           # global_token->S
     lea rax, [rip+comma]        # ","
@@ -963,8 +962,8 @@ collect_arguments_loop:
     jne collect_arguments_another # otherwise it isn't the first
 
     # Deal with the case of first argument in the function
-    mov rax, -8                 # -8
-    mov [rcx+32], rax           # a->depth = -8
+    mov rax, -4                 # -4
+    mov [rcx+32], rax           # a->depth = -4
     jmp collect_arguments_next  # get to next
 
 collect_arguments_another:
@@ -972,8 +971,8 @@ collect_arguments_another:
     mov rax, [rip+function]     # Using function
     mov rax, [rax+32]           # function->args
     mov rax, [rax+32]           # function->args->depth
-    sub rax, 8                  # function->args->depth - 8
-    mov [rcx+32], rax           # a->depth = function->args->depth - 8
+    sub rax, 4                  # function->args->depth - 4
+    mov [rcx+32], rax           # a->depth = function->args->depth - 4
 
 collect_arguments_next:
     mov rax, [rip+global_token] # Using global_token
@@ -1240,7 +1239,7 @@ recursive_statement_cleanup:
     # Deal with cleanup
     mov rbx, [rip+function]     # Using function
     mov rbx, [rbx+8]            # i = function->locals
-    lea rax, [rip+recursive_statement_string_1] # Using "pop_rbx\t# _recursive_statement_locals\n"
+    lea rax, [rip+recursive_statement_string_1] # Using "pop_ebx\t# _recursive_statement_locals\n"
 
 recursive_statement_locals:
     cmp rbx, rcx                # IF frame != i
@@ -1259,7 +1258,7 @@ recursive_statement_done:
     ret
 
 recursive_statement_string_0: .asciz "ret\n"
-recursive_statement_string_1: .asciz "pop_rbx\t# _recursive_statement_locals\n"
+recursive_statement_string_1: .asciz "pop_ebx\t# _recursive_statement_locals\n"
 
 
 # return_result function
@@ -1289,7 +1288,7 @@ return_result_cleanup:
 
     mov rbx, [rip+function]     # Using function
     mov rbx, [rbx+8]            # function->locals
-    lea rax, [rip+return_result_string_1] # Using "pop_rbx\t# _return_result_locals\n"
+    lea rax, [rip+return_result_string_1] # Using "pop_ebx\t# _return_result_locals\n"
 return_result_locals:
     cmp rbx, 0                  # IF NULL == i
     je return_result_done       # Be done
@@ -1306,7 +1305,7 @@ return_result_done:
     ret
 
 return_result_string_0: .asciz "ERROR in return_result\nMISSING ;\n"
-return_result_string_1: .asciz "pop_rbx\t# _return_result_locals\n"
+return_result_string_1: .asciz "pop_ebx\t# _return_result_locals\n"
 return_result_string_2: .asciz "ret\n"
 
 
@@ -1343,8 +1342,8 @@ collect_local:
     jne collect_local_fresh     # try to see if fresh function
 
     # Sweet we are in a fresh main
-    mov rax, -40                # We start at -40
-    mov [rcx+32], rax           # a->DEPTH = -40
+    mov rax, -20                # We start at -20
+    mov [rcx+32], rax           # a->DEPTH = -20
     jmp collect_local_common    # Go to the commons
 
 collect_local_fresh:
@@ -1359,8 +1358,8 @@ collect_local_fresh:
     jne collect_local_first     # Otherwise try first
 
     # Sweet we are in a fresh function
-    mov rax, -16                # We start at -16
-    mov [rcx+32], rax           # a->DEPTH = -16
+    mov rax, -8                 # We start at -8
+    mov [rcx+32], rax           # a->DEPTH = -8
     jmp collect_local_common    # Go to the commons
 
 collect_local_first:
@@ -1373,8 +1372,8 @@ collect_local_first:
     mov rax, [rip+function]     # Using function
     mov rax, [rax+32]           # function->args
     mov rax, [rax+32]           # function->args->depth
-    sub rax, 16                 # function->arguments->depth - 16
-    mov [rcx+32], rax           # a->DEPTH = function->arguments->depth - 16
+    sub rax, 8                  # function->arguments->depth - 8
+    mov [rcx+32], rax           # a->DEPTH = function->arguments->depth - 8
     jmp collect_local_common    # Go to the commons
 
 collect_local_else:
@@ -1382,8 +1381,8 @@ collect_local_else:
     mov rax, [rip+function]     # Using function
     mov rax, [rax+8]            # function->locals
     mov rax, [rax+32]           # function->locals->depth
-    sub rax, 8                  # function->locals->depth - 8
-    mov [rcx+32], rax           # a->DEPTH = function->locals->depth - 8
+    sub rax, 4                  # function->locals->depth - 4
+    mov [rcx+32], rax           # a->DEPTH = function->locals->depth - 4
 
 collect_local_common:
     mov rax, [rip+function]     # Using function
@@ -1423,7 +1422,7 @@ collect_local_done:
     lea rbx, [rip+semicolon]    # Using ";"
     call require_match          # Make sure we have it
 
-    lea rax, [rip+collect_local_string_3] # Using "push_rax\t#"
+    lea rax, [rip+collect_local_string_3] # Using "push_eax\t#"
     call emit_out               # emit it
 
     mov rax, rcx                # put A->S where it belongs
@@ -1439,7 +1438,7 @@ collect_local_done:
 collect_local_string_0: .asciz "# Defining local "
 collect_local_string_1: .byte 10, 0
 collect_local_string_2: .asciz "ERROR in collect_local\nMissing ;\n"
-collect_local_string_3: .asciz "push_rax\t#"
+collect_local_string_3: .asciz "push_eax\t#"
 
 
 # process_asm function
@@ -1527,7 +1526,7 @@ process_if:
 
     call expression             # Recurse to get the IF(...) part
 
-    lea rax, [rip+process_if_string_2] # Using "test_rax,rax\nje %ELSE_"
+    lea rax, [rip+process_if_string_2] # Using "test_eax,eax\nje %ELSE_"
     call emit_out               # Emit it
 
     mov rax, [rip+function]     # Using function
@@ -1585,7 +1584,7 @@ process_if_done:
 
 process_if_string_0: .asciz "# IF_"
 process_if_string_1: .asciz "ERROR in process_if\nMISSING (\n"
-process_if_string_2: .asciz "test_rax,rax\nje %ELSE_"
+process_if_string_2: .asciz "test_eax,eax\nje %ELSE_"
 process_if_string_3: .asciz "ERROR in process_if\nMISSING )\n"
 process_if_string_4: .asciz "jmp %_END_IF_"
 process_if_string_5: .asciz ":ELSE_"
@@ -1696,7 +1695,7 @@ process_do:
     lea rbx, [rip+semicolon]    # Using ";"
     call require_match          # Make sure we have it
 
-    lea rax, [rip+process_do_string_6] # Using "test_rax,rax\njne %DO_"
+    lea rax, [rip+process_do_string_6] # Using "test_eax,eax\njne %DO_"
     call emit_out               # Emit it
 
     mov rax, [rip+function]     # Using function
@@ -1723,7 +1722,7 @@ process_do_string_2: .asciz "ERROR in process_do\nMISSING while\n"
 process_do_string_3: .asciz "ERROR in process_do\nMISSING (\n"
 process_do_string_4: .asciz "ERROR in process_do\nMISSING )\n"
 process_do_string_5: .asciz "ERROR in process_do\nMISSING ;\n"
-process_do_string_6: .asciz "test_rax,rax\njne %DO_"
+process_do_string_6: .asciz "test_eax,eax\njne %DO_"
 process_do_string_7: .asciz ":DO_END_"
 
 
@@ -1766,7 +1765,7 @@ process_while:
 
     call expression             # Deal with the WHILE (...) part
 
-    lea rax, [rip+process_while_string_3] # Using "test_rax,rax\nje %END_WHILE_"
+    lea rax, [rip+process_while_string_3] # Using "test_eax,eax\nje %END_WHILE_"
     call emit_out               # Emit it
 
     mov rax, [rip+function]     # Using function
@@ -1811,7 +1810,7 @@ process_while:
 process_while_string_0: .asciz "END_WHILE_"
 process_while_string_1: .asciz ":WHILE_"
 process_while_string_2: .asciz "ERROR in process_while\nMISSING (\n"
-process_while_string_3: .asciz "test_rax,rax\nje %END_WHILE_"
+process_while_string_3: .asciz "test_eax,eax\nje %END_WHILE_"
 process_while_string_4: .asciz "# THEN_while_"
 process_while_string_5: .asciz "ERROR in process_while\nMISSING )\n"
 process_while_string_6: .asciz "jmp %WHILE_"
@@ -1880,7 +1879,7 @@ process_for_terminator:
 
     call expression             # Get the FOR ( ; ... ; Part
 
-    lea rax, [rip+process_for_string_5] # Using "test_rax,rax\nje %FOR_END_"
+    lea rax, [rip+process_for_string_5] # Using "test_eax,eax\nje %FOR_END_"
     call emit_out               # Emit it
 
     mov rax, [rip+function]     # Using function
@@ -1955,7 +1954,7 @@ process_for_string_1: .asciz "# FOR_initialization_"
 process_for_string_2: .asciz "ERROR in process_for\nMISSING (\n"
 process_for_string_3: .asciz ":FOR_"
 process_for_string_4: .asciz "ERROR in process_for\nMISSING ;1\n"
-process_for_string_5: .asciz "test_rax,rax\nje %FOR_END_"
+process_for_string_5: .asciz "test_eax,eax\nje %FOR_END_"
 process_for_string_6: .asciz "jmp %FOR_THEN_"
 process_for_string_7: .asciz ":FOR_ITER_"
 process_for_string_8: .asciz "ERROR in process_for\nMISSING ;2\n"
@@ -2038,7 +2037,7 @@ process_break_bad:
     jmp Exit_Failure            # Abort Hard
 
 process_break_string_0: .asciz "Not inside of a loop or case statement"
-process_break_string_1: .asciz "pop_rbx\t# break_cleanup_locals\n"
+process_break_string_1: .asciz "pop_ebx\t# break_cleanup_locals\n"
 process_break_string_2: .asciz "jmp %"
 process_break_string_3: .byte 10, 0
 process_break_string_4: .asciz "ERROR in break statement\nMissing ;\n"
@@ -2062,7 +2061,7 @@ expression:
     jne expression_done         # Looks like nope
 
     # Deal with possible assignment
-    lea rcx, [rip+expression_string_1] # Assume "mov_[rbx],al\n" by default
+    lea rcx, [rip+expression_string_1] # Assume "mov_[ebx],al\n" by default
     mov rbx, [rip+global_token] # Using global_token
     mov rbx, [rbx+8]            # global_token->PREV
     mov rbx, [rbx+16]           # global_token->PREV->S
@@ -2078,10 +2077,10 @@ expression:
     cmp rax, 0                  # IF current_target->NAME == "char*"
     jne expression_int          # Do char anyway
 
-    jmp expression_common       # Looks like we have to use "mov_[rbx],al\n"
+    jmp expression_common       # Looks like we have to use "mov_[ebx],al\n"
 
 expression_int:
-    lea rcx, [rip+expression_string_0] # Use "mov_[rbx],rax\n"
+    lea rcx, [rip+expression_string_0] # Use "mov_[ebx],eax\n"
 
 expression_common:
     lea rax, [rip+expression]   # Passing expression
@@ -2096,8 +2095,8 @@ expression_done:
     pop rbx                     # Restore RBX
     ret
 
-expression_string_0: .asciz "mov_[rbx],rax\n"
-expression_string_1: .asciz "mov_[rbx],al\n"
+expression_string_0: .asciz "mov_[ebx],eax\n"
+expression_string_1: .asciz "mov_[ebx],al\n"
 
 
 # bitwise_expr function
@@ -2122,31 +2121,31 @@ bitwise_expr_stub:
     push rdx                    # Protect RDX
 
     lea rax, [rip+relational_expr] # Using relational_expr
-    lea rbx, [rip+bitwise_expr_stub_string_0] # Using "and_rax,rbx\n"
+    lea rbx, [rip+bitwise_expr_stub_string_0] # Using "and_eax,ebx\n"
     lea rcx, [rip+bitwise_and]  # Using "&"
     lea rdx, [rip+bitwise_expr_stub] # And recurse
     call general_recursion      # Hit it
 
     lea rax, [rip+relational_expr] # Using relational_expr
-    lea rbx, [rip+bitwise_expr_stub_string_0] # Using "and_rax,rbx\n"
+    lea rbx, [rip+bitwise_expr_stub_string_0] # Using "and_eax,ebx\n"
     lea rcx, [rip+logical_and]  # Using "&&"
     lea rdx, [rip+bitwise_expr_stub] # And recurse
     call general_recursion      # Hit it
 
     lea rax, [rip+relational_expr] # Using relational_expr
-    lea rbx, [rip+bitwise_expr_stub_string_1] # Using "or_rax,rbx\n"
+    lea rbx, [rip+bitwise_expr_stub_string_1] # Using "or_eax,ebx\n"
     lea rcx, [rip+bitwise_or]   # Using "|"
     lea rdx, [rip+bitwise_expr_stub] # And recurse
     call general_recursion      # Hit it
 
     lea rax, [rip+relational_expr] # Using relational_expr
-    lea rbx, [rip+bitwise_expr_stub_string_1] # Using "or_rax,rbx\n"
+    lea rbx, [rip+bitwise_expr_stub_string_1] # Using "or_eax,ebx\n"
     lea rcx, [rip+logical_or]   # Using "||"
     lea rdx, [rip+bitwise_expr_stub] # And recurse
     call general_recursion      # Hit it
 
     lea rax, [rip+relational_expr] # Using relational_expr
-    lea rbx, [rip+bitwise_expr_stub_string_2] # Using "xor_rax,rbx\n"
+    lea rbx, [rip+bitwise_expr_stub_string_2] # Using "xor_eax,ebx\n"
     lea rcx, [rip+bitwise_xor]  # Using "^"
     lea rdx, [rip+bitwise_expr_stub] # And recurse
     call general_recursion      # Hit it
@@ -2156,9 +2155,9 @@ bitwise_expr_stub:
     pop rbx                     # Restore RBX
     ret
 
-bitwise_expr_stub_string_0: .asciz "and_rax,rbx\n"
-bitwise_expr_stub_string_1: .asciz "or_rax,rbx\n"
-bitwise_expr_stub_string_2: .asciz "xor_rax,rbx\n"
+bitwise_expr_stub_string_0: .asciz "and_eax,ebx\n"
+bitwise_expr_stub_string_1: .asciz "or_eax,ebx\n"
+bitwise_expr_stub_string_2: .asciz "xor_eax,ebx\n"
 
 
 # relational_expr function
@@ -2183,37 +2182,37 @@ relational_expr_stub:
     push rdx                    # Protect RDX
 
     lea rax, [rip+additive_expr] # Using additive_expr
-    lea rbx, [rip+relational_expr_stub_string_0] # Using "cmp_rbx,rax\nsetl_al\nmovzx_rax,al\n"
+    lea rbx, [rip+relational_expr_stub_string_0] # Using "cmp\nsetl_al\nmovzx_eax,al\n"
     lea rcx, [rip+less_than_string] # Using "<"
     lea rdx, [rip+relational_expr_stub] # And recurse
     call general_recursion      # Hit it
 
     lea rax, [rip+additive_expr] # Using additive_expr
-    lea rbx, [rip+relational_expr_stub_string_1] # Using "cmp_rbx,rax\nsetle_al\nmovzx_rax,al\n"
+    lea rbx, [rip+relational_expr_stub_string_1] # Using "cmp\nsetle_al\nmovzx_eax,al\n"
     lea rcx, [rip+less_than_equal_string] # Using "<="
     lea rdx, [rip+relational_expr_stub] # And recurse
     call general_recursion      # Hit it
 
     lea rax, [rip+additive_expr] # Using additive_expr
-    lea rbx, [rip+relational_expr_stub_string_2] # Using "cmp_rbx,rax\nsetge_al\nmovzx_rax,al\n"
+    lea rbx, [rip+relational_expr_stub_string_2] # Using "cmp\nsetge_al\nmovzx_eax,al\n"
     lea rcx, [rip+greater_than_equal_string] # Using ">="
     lea rdx, [rip+relational_expr_stub] # And recurse
     call general_recursion      # Hit it
 
     lea rax, [rip+additive_expr] # Using additive_expr
-    lea rbx, [rip+relational_expr_stub_string_3] # Using "cmp_rbx,rax\nsetg_al\nmovzx_rax,al\n"
+    lea rbx, [rip+relational_expr_stub_string_3] # Using "cmp\nsetg_al\nmovzx_eax,al\n"
     lea rcx, [rip+greater_than_string] # Using ">"
     lea rdx, [rip+relational_expr_stub] # And recurse
     call general_recursion      # Hit it
 
     lea rax, [rip+additive_expr] # Using additive_expr
-    lea rbx, [rip+relational_expr_stub_string_4] # Using "cmp_rbx,rax\nsete_al\nmovzx_rax,al\n"
+    lea rbx, [rip+relational_expr_stub_string_4] # Using "cmp\nsete_al\nmovzx_eax,al\n"
     lea rcx, [rip+equal_to_string] # Using "=="
     lea rdx, [rip+relational_expr_stub] # And recurse
     call general_recursion      # Hit it
 
     lea rax, [rip+additive_expr] # Using additive_expr
-    lea rbx, [rip+relational_expr_stub_string_5] # Using "cmp_rbx,rax\nsetne_al\nmovzx_rax,al\n"
+    lea rbx, [rip+relational_expr_stub_string_5] # Using "cmp\nsetne_al\nmovzx_eax,al\n"
     lea rcx, [rip+not_equal_string] # Using "!="
     lea rdx, [rip+relational_expr_stub] # And recurse
     call general_recursion      # Hit it
@@ -2223,12 +2222,12 @@ relational_expr_stub:
     pop rbx                     # Restore RBX
     ret
 
-relational_expr_stub_string_0: .asciz "cmp_rbx,rax\nsetl_al\nmovzx_rax,al\n"
-relational_expr_stub_string_1: .asciz "cmp_rbx,rax\nsetle_al\nmovzx_rax,al\n"
-relational_expr_stub_string_2: .asciz "cmp_rbx,rax\nsetge_al\nmovzx_rax,al\n"
-relational_expr_stub_string_3: .asciz "cmp_rbx,rax\nsetg_al\nmovzx_rax,al\n"
-relational_expr_stub_string_4: .asciz "cmp_rbx,rax\nsete_al\nmovzx_rax,al\n"
-relational_expr_stub_string_5: .asciz "cmp_rbx,rax\nsetne_al\nmovzx_rax,al\n"
+relational_expr_stub_string_0: .asciz "cmp\nsetl_al\nmovzx_eax,al\n"
+relational_expr_stub_string_1: .asciz "cmp\nsetle_al\nmovzx_eax,al\n"
+relational_expr_stub_string_2: .asciz "cmp\nsetge_al\nmovzx_eax,al\n"
+relational_expr_stub_string_3: .asciz "cmp\nsetg_al\nmovzx_eax,al\n"
+relational_expr_stub_string_4: .asciz "cmp\nsete_al\nmovzx_eax,al\n"
+relational_expr_stub_string_5: .asciz "cmp\nsetne_al\nmovzx_eax,al\n"
 
 
 # additive_expr function
@@ -2253,43 +2252,43 @@ additive_expr_stub:
     push rdx                    # Protect RDX
 
     lea rax, [rip+postfix_expr] # Using postfix_expr
-    lea rbx, [rip+additive_expr_stub_string_0] # Using "add_rax,rbx\n"
+    lea rbx, [rip+additive_expr_stub_string_0] # Using "add_eax,ebx\n"
     lea rcx, [rip+plus_string]  # Using "+"
     lea rdx, [rip+additive_expr_stub] # And recurse
     call general_recursion      # Hit it
 
     lea rax, [rip+postfix_expr] # Using postfix_expr
-    lea rbx, [rip+additive_expr_stub_string_1] # Using "sub_rbx,rax\nmov_rax,rbx\n"
+    lea rbx, [rip+additive_expr_stub_string_1] # Using "sub_ebx,eax\nmov_eax,ebx\n"
     lea rcx, [rip+minus_string] # Using "-"
     lea rdx, [rip+additive_expr_stub] # And recurse
     call general_recursion      # Hit it
 
     lea rax, [rip+postfix_expr] # Using postfix_expr
-    lea rbx, [rip+additive_expr_stub_string_2] # Using "mul_rbx\n"
+    lea rbx, [rip+additive_expr_stub_string_2] # Using "mul_ebx\n"
     lea rcx, [rip+multiply_string] # Using "*"
     lea rdx, [rip+additive_expr_stub] # And recurse
     call general_recursion      # Hit it
 
     lea rax, [rip+postfix_expr] # Using postfix_expr
-    lea rbx, [rip+additive_expr_stub_string_3] # Using "xchg_rbx,rax\nmov_rdx, %0\ndiv_rbx\n"
+    lea rbx, [rip+additive_expr_stub_string_3] # Using "xchg_ebx,eax\nmov_edx, %0\ndiv_ebx\n"
     lea rcx, [rip+divide_string] # Using "/"
     lea rdx, [rip+additive_expr_stub] # And recurse
     call general_recursion      # Hit it
 
     lea rax, [rip+postfix_expr] # Using postfix_expr
-    lea rbx, [rip+additive_expr_stub_string_4] # Using "xchg_rbx,rax\nmov_rdx, %0\ndiv_rbx\nmov_rax,rdx\n"
+    lea rbx, [rip+additive_expr_stub_string_4] # Using "xchg_ebx,eax\nmov_edx, %0\ndiv_ebx\nmov_eax,edx\n"
     lea rcx, [rip+modulus_string] # Using "%"
     lea rdx, [rip+additive_expr_stub] # And recurse
     call general_recursion      # Hit it
 
     lea rax, [rip+postfix_expr] # Using postfix_expr
-    lea rbx, [rip+additive_expr_stub_string_5] # Using "mov_rcx,rax\nmov_rax,rbx\nsal_rax,cl\n"
+    lea rbx, [rip+additive_expr_stub_string_5] # Using "mov_ecx,eax\nmov_eax,ebx\nsal_eax,cl\n"
     lea rcx, [rip+left_shift_string] # Using "<<"
     lea rdx, [rip+additive_expr_stub] # And recurse
     call general_recursion      # Hit it
 
     lea rax, [rip+postfix_expr] # Using postfix_expr
-    lea rbx, [rip+additive_expr_stub_string_6] # Using "mov_rcx,rax\nmov_rax,rbx\nsar_rax,cl\n"
+    lea rbx, [rip+additive_expr_stub_string_6] # Using "mov_ecx,eax\nmov_eax,ebx\nsar_eax,cl\n"
     lea rcx, [rip+right_shift_string] # Using ">>"
     lea rdx, [rip+additive_expr_stub] # And recurse
     call general_recursion      # Hit it
@@ -2299,13 +2298,13 @@ additive_expr_stub:
     pop rbx                     # Restore RBX
     ret
 
-additive_expr_stub_string_0: .asciz "add_rax,rbx\n"
-additive_expr_stub_string_1: .asciz "sub_rbx,rax\nmov_rax,rbx\n"
-additive_expr_stub_string_2: .asciz "mul_rbx\n"
-additive_expr_stub_string_3: .asciz "xchg_rbx,rax\nmov_rdx, %0\ndiv_rbx\n"
-additive_expr_stub_string_4: .asciz "xchg_rbx,rax\nmov_rdx, %0\ndiv_rbx\nmov_rax,rdx\n"
-additive_expr_stub_string_5: .asciz "mov_rcx,rax\nmov_rax,rbx\nsal_rax,cl\n"
-additive_expr_stub_string_6: .asciz "mov_rcx,rax\nmov_rax,rbx\nsar_rax,cl\n"
+additive_expr_stub_string_0: .asciz "add_eax,ebx\n"
+additive_expr_stub_string_1: .asciz "sub_ebx,eax\nmov_eax,ebx\n"
+additive_expr_stub_string_2: .asciz "mul_ebx\n"
+additive_expr_stub_string_3: .asciz "xchg_ebx,eax\nmov_edx, %0\ndiv_ebx\n"
+additive_expr_stub_string_4: .asciz "xchg_ebx,eax\nmov_edx, %0\ndiv_ebx\nmov_eax,edx\n"
+additive_expr_stub_string_5: .asciz "mov_ecx,eax\nmov_eax,ebx\nsal_eax,cl\n"
+additive_expr_stub_string_6: .asciz "mov_ecx,eax\nmov_eax,ebx\nsar_eax,cl\n"
 
 
 # postfix_expr function
@@ -2390,7 +2389,7 @@ unary_expr_sizeof:
 
 unary_expr_sizeof_string_0: .asciz "ERROR in unary_expr\nMissing (\n"
 unary_expr_sizeof_string_1: .asciz "ERROR in unary_expr\nMissing )\n"
-unary_expr_sizeof_string_2: .asciz "mov_rax, %"
+unary_expr_sizeof_string_2: .asciz "mov_eax, %"
 unary_expr_sizeof_string_3: .byte 10, 0
 
 
@@ -2410,7 +2409,7 @@ postfix_expr_array:
     pop rbx                     # Restore array
     mov [rip+current_target], rbx # current_target = ARRAY
 
-    lea rcx, [rip+postfix_expr_array_string_0] # ASSIGN = "mov_rax,[rax]\n"
+    lea rcx, [rip+postfix_expr_array_string_0] # ASSIGN = "mov_eax,[eax]\n"
 
     lea rax, [rip+type_char_indirect_name] # Using "char*"
     mov rbx, [rbx+48]           # current_target->NAME
@@ -2419,12 +2418,12 @@ postfix_expr_array:
     jne postfix_expr_array_large # Otherwise adjust
 
     # Deal with loading byte
-    lea rcx, [rip+postfix_expr_array_string_1] # ASSIGN = "movsx_rax,BYTE_PTR_[rax]\n"
+    lea rcx, [rip+postfix_expr_array_string_1] # ASSIGN = "movsx_eax,BYTE_PTR_[eax]\n"
     jmp postfix_expr_array_common # Do the next bit
 
 postfix_expr_array_large:
     # deal with arrays made of things other than chars
-    lea rax, [rip+postfix_expr_array_string_2] # Using "sal_rax, !"
+    lea rax, [rip+postfix_expr_array_string_2] # Using "sal_eax, !"
     call emit_out               # Emit it
 
     mov rax, [rip+current_target] # Using current_target
@@ -2438,7 +2437,7 @@ postfix_expr_array_large:
     call emit_out               # Emit it
 
 postfix_expr_array_common:
-    lea rax, [rip+postfix_expr_array_string_4] # Using "add_rax,rbx\n"
+    lea rax, [rip+postfix_expr_array_string_4] # Using "add_eax,ebx\n"
     call emit_out               # Emit it
 
     lea rax, [rip+postfix_expr_array_string_5] # Using "ERROR in postfix_expr\nMissing ]\n"
@@ -2463,11 +2462,11 @@ postfix_expr_array_done:
     pop rbx                     # Restore RBX
     ret
 
-postfix_expr_array_string_0: .asciz "mov_rax,[rax]\n"
-postfix_expr_array_string_1: .asciz "movsx_rax,BYTE_PTR_[rax]\n"
-postfix_expr_array_string_2: .asciz "sal_rax, !"
+postfix_expr_array_string_0: .asciz "mov_eax,[eax]\n"
+postfix_expr_array_string_1: .asciz "movsx_eax,BYTE_PTR_[eax]\n"
+postfix_expr_array_string_2: .asciz "sal_eax, !"
 postfix_expr_array_string_3: .byte 10, 0
-postfix_expr_array_string_4: .asciz "add_rax,rbx\n"
+postfix_expr_array_string_4: .asciz "add_eax,ebx\n"
 postfix_expr_array_string_5: .asciz "ERROR in postfix_expr\nMissing ]\n"
 postfix_expr_array_string_6: .byte 0
 
@@ -2505,6 +2504,7 @@ ceil_log2_done:
     ret
 
 
+
 # postfix_expr_arrow function
 # Receives nothing
 # Returns nothing
@@ -2536,14 +2536,14 @@ postfix_expr_arrow:
     je postfix_expr_arrow_first # Then we don't need to do an offset
 
     # Deal with needing an offset
-    lea rax, [rip+postfix_expr_arrow_string_1] # Using "# -> offset calculation\nmov_rbx, %"
+    lea rax, [rip+postfix_expr_arrow_string_1] # Using "# -> offset calculation\nmov_ebx, %"
     call emit_out               # Emit it
 
     mov rax, [rbx+16]           # I->OFFSET
     call numerate_number        # Convert to string
     call emit_out               # Emit it
 
-    lea rax, [rip+postfix_expr_arrow_string_2] # Using "\nadd_rax,rbx\n"
+    lea rax, [rip+postfix_expr_arrow_string_2] # Using "\nadd_eax,ebx\n"
     call emit_out               # Emit it
 
 postfix_expr_arrow_first:
@@ -2560,7 +2560,7 @@ postfix_expr_arrow_first:
     je postfix_expr_arrow_done  # Be done
 
     # Deal with load case
-    lea rax, [rip+postfix_expr_arrow_string_3] # Using "mov_rax,[rax]\n"
+    lea rax, [rip+postfix_expr_arrow_string_3] # Using "mov_eax,[eax]\n"
     call emit_out               # Emit it
 
 postfix_expr_arrow_done:
@@ -2568,9 +2568,9 @@ postfix_expr_arrow_done:
     ret
 
 postfix_expr_arrow_string_0: .asciz "# looking up offset\n"
-postfix_expr_arrow_string_1: .asciz "# -> offset calculation\nmov_rbx, %"
-postfix_expr_arrow_string_2: .asciz "\nadd_rax,rbx\n"
-postfix_expr_arrow_string_3: .asciz "mov_rax,[rax]\n"
+postfix_expr_arrow_string_1: .asciz "# -> offset calculation\nmov_ebx, %"
+postfix_expr_arrow_string_2: .asciz "\nadd_eax,ebx\n"
+postfix_expr_arrow_string_3: .asciz "mov_eax,[eax]\n"
 
 
 # primary_expr function
@@ -2599,13 +2599,13 @@ primary_expr_neg:
     jne primary_expr_not        # Otherwise try logical NOT
 
     # Deal with negative numbers
-    lea rax, [rip+primary_expr_string_0] # Using "mov_rax, %0\n"
+    lea rax, [rip+primary_expr_string_0] # Using "mov_eax, %0\n"
     call emit_out               # Emit it
 
     lea rax, [rip+postfix_expr] # Passing postfix_expr
     call common_recursion       # Get what it is notting
 
-    lea rax, [rip+primary_expr_string_1] # Using "sub_rbx,rax\nmov_rax,rbx\n"
+    lea rax, [rip+primary_expr_string_1] # Using "sub_ebx,eax\nmov_eax,ebx\n"
     call emit_out               # Emit it
     jmp primary_expr_done       # Be done
 
@@ -2618,13 +2618,13 @@ primary_expr_not:
     jne primary_expr_bin        # Otherwise try '~'
 
     # Deal with logical not
-    lea rax, [rip+primary_expr_string_2] # Using "mov_rax, %1\n"
+    lea rax, [rip+primary_expr_string_2] # Using "mov_eax, %1\n"
     call emit_out               # Emit it
 
     lea rax, [rip+postfix_expr] # Passing postfix_expr
     call common_recursion       # Get what it is notting
 
-    lea rax, [rip+primary_expr_string_3] # Using "xor_rax,rbx\n"
+    lea rax, [rip+primary_expr_string_3] # Using "xor_eax,ebx\n"
     call emit_out               # Emit it
     jmp primary_expr_done       # Be done
 
@@ -2639,7 +2639,7 @@ primary_expr_bin:
     # Deal with binary NOT
     lea rax, [rip+postfix_expr] # Passing postfix_expr
     call common_recursion       # Get what it is notting
-    lea rax, [rip+primary_expr_string_4] # Using "not_rax\n"
+    lea rax, [rip+primary_expr_string_4] # Using "not_eax\n"
     call emit_out               # Emit it
     jmp primary_expr_done       # Be done
 
@@ -2721,11 +2721,11 @@ primary_expr_done:
     pop rbx                     # Restore RBX
     ret
 
-primary_expr_string_0: .asciz "mov_rax, %0\n"
-primary_expr_string_1: .asciz "sub_rbx,rax\nmov_rax,rbx\n"
-primary_expr_string_2: .asciz "mov_rax, %1\n"
-primary_expr_string_3: .asciz "xor_rax,rbx\n"
-primary_expr_string_4: .asciz "not_rax\n"
+primary_expr_string_0: .asciz "mov_eax, %0\n"
+primary_expr_string_1: .asciz "sub_ebx,eax\nmov_eax,ebx\n"
+primary_expr_string_2: .asciz "mov_eax, %1\n"
+primary_expr_string_3: .asciz "xor_eax,ebx\n"
+primary_expr_string_4: .asciz "not_eax\n"
 primary_expr_string_5: .asciz "Error in Primary expression\nDidn't get )\n"
 primary_expr_string_6: .asciz "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
 primary_expr_string_7: .asciz "0123456789"
@@ -2752,7 +2752,7 @@ primary_expr_variable:
 
     # Deal with constant load
     mov rbx, [rax+32]           # a->ARGS
-    lea rax, [rip+primary_expr_variable_string_2] # Using "mov_rax, %"
+    lea rax, [rip+primary_expr_variable_string_2] # Using "mov_eax, %"
     call emit_out               # Emit it
 
     mov rax, [rbx+16]           # a->ARGS->S
@@ -2825,7 +2825,7 @@ primary_expr_variable_done:
 
 primary_expr_variable_string_0: .asciz " is not a defined symbol\n"
 primary_expr_variable_string_1: .byte 10, 0
-primary_expr_variable_string_2: .asciz "mov_rax, %"
+primary_expr_variable_string_2: .asciz "mov_eax, %"
 
 
 # function_call function
@@ -2845,13 +2845,13 @@ function_call:
     lea rbx, [rip+open_paren]   # Using "("
     call require_match          # Make sure we have it
 
-    lea rax, [rip+function_call_string_1] # Using "push_rdi\t# Prevent overwriting in recursion\n"
+    lea rax, [rip+function_call_string_1] # Using "push_edi\t# Prevent overwriting in recursion\n"
     call emit_out               # Emit it
 
-    lea rax, [rip+function_call_string_2] # Using "push_rbp\t# Protect the old base pointer\n"
+    lea rax, [rip+function_call_string_2] # Using "push_ebp\t# Protect the old base pointer\n"
     call emit_out               # Emit it
 
-    lea rax, [rip+function_call_string_3] # Using "mov_rdi,rsp\t# Copy new base pointer\n"
+    lea rax, [rip+function_call_string_3] # Using "mov_edi,esp\t# Copy new base pointer\n"
     call emit_out               # Emit it
 
     mov rax, [rip+global_token] # Using global_token
@@ -2882,7 +2882,7 @@ function_call_gen_iter:
 
     call expression             # Collect the argument
 
-    lea rax, [rip+function_call_string_5] # Using "push_rax\t#_process_expression2\n"
+    lea rax, [rip+function_call_string_5] # Using "push_eax\t#_process_expression2\n"
     call emit_out               # Emit it
     add rsi, 1                  # PASSED = PASSED + 1
     jmp function_call_gen_iter  # Keep trying
@@ -2897,27 +2897,27 @@ function_call_gen_done:
     jne function_call_static    # Otherwise it is a static call
 
     # Deal with a passed function pointer
-    lea rax, [rip+function_call_string_7] # Using "lea_rax,[rbp+DWORD] %"
+    lea rax, [rip+function_call_string_7] # Using "lea_eax,[ebp+DWORD] %"
     call emit_out               # Emit it
 
     mov rax, rcx                # Using S
     call emit_out               # Emit it
 
-    lea rax, [rip+function_call_string_8] # Using "\nmov_rax,[rax]\n"
+    lea rax, [rip+function_call_string_8] # Using "\nmov_eax,[eax]\n"
     call emit_out               # Emit it
 
-    lea rax, [rip+function_call_string_9] # Using "mov_rbp,rdi\n"
+    lea rax, [rip+function_call_string_9] # Using "mov_ebp,edi\n"
     call emit_out               # Emit it
 
-    lea rax, [rip+function_call_string_10] # Using "call_rax\n"
+    lea rax, [rip+function_call_string_10] # Using "call_eax\n"
     call emit_out               # Emit it
 
-    lea rax, [rip+function_call_string_13] # Using "pop_rbx\t# _process_expression_locals\n"
+    lea rax, [rip+function_call_string_13] # Using "pop_ebx\t# _process_expression_locals\n"
     jmp function_call_cleanup   # Clean up
 
 function_call_static:
     # Deal with fixed function name
-    lea rax, [rip+function_call_string_9] # Using "mov_rbp,rdi\n"
+    lea rax, [rip+function_call_string_9] # Using "mov_ebp,edi\n"
     call emit_out               # Emit it
 
     lea rax, [rip+function_call_string_11] # Using "call %FUNCTION_"
@@ -2929,7 +2929,7 @@ function_call_static:
     lea rax, [rip+function_call_string_12] # Using "\n"
     call emit_out               # Emit it
 
-    lea rax, [rip+function_call_string_13] # Using "pop_rbx\t# _process_expression_locals\n"
+    lea rax, [rip+function_call_string_13] # Using "pop_ebx\t# _process_expression_locals\n"
 
 function_call_cleanup:
     cmp rsi, 0                  # IF PASSED > 0
@@ -2942,10 +2942,10 @@ function_call_cleanup:
     jmp function_call_cleanup   # Keep going
 
 function_call_done:
-    lea rax, [rip+function_call_string_14] # Using "pop_rbp\t# Restore old base pointer\n"
+    lea rax, [rip+function_call_string_14] # Using "pop_ebp\t# Restore old base pointer\n"
     call emit_out               # Emit it
 
-    lea rax, [rip+function_call_string_15] # Using "pop_rdi\t# Prevent overwrite\n"
+    lea rax, [rip+function_call_string_15] # Using "pop_edi\t# Prevent overwrite\n"
     call emit_out               # Emit it
 
     pop rsi                     # Restore RSI
@@ -2955,21 +2955,21 @@ function_call_done:
     ret
 
 function_call_string_0: .asciz "ERROR in process_expression_list\nNo ( was found\n"
-function_call_string_1: .asciz "push_rdi\t# Prevent overwriting in recursion\n"
-function_call_string_2: .asciz "push_rbp\t# Protect the old base pointer\n"
-function_call_string_3: .asciz "mov_rdi,rsp\t# Copy new base pointer\n"
-function_call_string_4: .asciz "push_rax\t#_process_expression1\n"
-function_call_string_5: .asciz "push_rax\t#_process_expression2\n"
+function_call_string_1: .asciz "push_edi\t# Prevent overwriting in recursion\n"
+function_call_string_2: .asciz "push_ebp\t# Protect the old base pointer\n"
+function_call_string_3: .asciz "mov_edi,esp\t# Copy new base pointer\n"
+function_call_string_4: .asciz "push_eax\t#_process_expression1\n"
+function_call_string_5: .asciz "push_eax\t#_process_expression2\n"
 function_call_string_6: .asciz "ERROR in process_expression_list\nNo ) was found\n"
-function_call_string_7: .asciz "lea_rax,[rbp+DWORD] %"
-function_call_string_8: .asciz "\nmov_rax,[rax]\n"
-function_call_string_9: .asciz "mov_rbp,rdi\n"
-function_call_string_10: .asciz "call_rax\n"
+function_call_string_7: .asciz "lea_eax,[ebp+DWORD] %"
+function_call_string_8: .asciz "\nmov_eax,[eax]\n"
+function_call_string_9: .asciz "mov_ebp,edi\n"
+function_call_string_10: .asciz "call_eax\n"
 function_call_string_11: .asciz "call %FUNCTION_"
 function_call_string_12: .byte 10, 0
-function_call_string_13: .asciz "pop_rbx\t# _process_expression_locals\n"
-function_call_string_14: .asciz "pop_rbp\t# Restore old base pointer\n"
-function_call_string_15: .asciz "pop_rdi\t# Prevent overwrite\n"
+function_call_string_13: .asciz "pop_ebx\t# _process_expression_locals\n"
+function_call_string_14: .asciz "pop_ebp\t# Restore old base pointer\n"
+function_call_string_15: .asciz "pop_edi\t# Prevent overwrite\n"
 
 
 # variable_load function
@@ -3007,7 +3007,7 @@ variable_load_regular:
     mov rax, [rcx+24]           # A->TYPE
     mov [rip+current_target], rax # current_target = A->TYPE
 
-    lea rax, [rip+variable_load_string_0] # Using "lea_rax,[rbp+DWORD] %"
+    lea rax, [rip+variable_load_string_0] # Using "lea_eax,[ebp+DWORD] %"
     call emit_out               # Emit it
 
     mov rax, [rcx+32]           # A->DEPTH
@@ -3026,7 +3026,7 @@ variable_load_regular:
     je variable_load_done       # And be done
 
     # Deal with common case
-    lea rax, [rip+variable_load_string_2] # Using "mov_rax,[rax]\n"
+    lea rax, [rip+variable_load_string_2] # Using "mov_eax,[eax]\n"
     call emit_out               # Emit it
 
 variable_load_done:
@@ -3034,9 +3034,9 @@ variable_load_done:
     pop rbx                     # Restore RBX
     ret
 
-variable_load_string_0: .asciz "lea_rax,[rbp+DWORD] %"
+variable_load_string_0: .asciz "lea_eax,[ebp+DWORD] %"
 variable_load_string_1: .byte 10, 0
-variable_load_string_2: .asciz "mov_rax,[rax]\n"
+variable_load_string_2: .asciz "mov_eax,[eax]\n"
 
 
 # function_load function
@@ -3062,7 +3062,7 @@ function_load:
     jmp function_load_done      # Be done
 
 function_load_regular:
-    lea rax, [rip+function_load_string_0] # Using "lea_rax,[rip+DWORD] %FUNCTION_"
+    lea rax, [rip+function_load_string_0] # Using "mov_eax, &FUNCTION_"
     call emit_out               # Emit it
 
     mov rax, rcx                # Using A->S
@@ -3076,7 +3076,7 @@ function_load_done:
     pop rbx                     # Restore RBX
     ret
 
-function_load_string_0: .asciz "lea_rax,[rip+DWORD] %FUNCTION_"
+function_load_string_0: .asciz "mov_eax, &FUNCTION_"
 function_load_string_1: .byte 10, 0
 
 
@@ -3092,7 +3092,7 @@ global_load:
     mov rax, [rax+24]           # A->TYPE
     mov [rip+current_target], rax # current_target = A->TYPE
 
-    lea rax, [rip+global_load_string_0] # Using "lea_rax,[rip+DWORD] %GLOBAL_"
+    lea rax, [rip+global_load_string_0] # Using "mov_eax, &GLOBAL_"
     call emit_out               # Emit it
 
     mov rax, rbx                # Using A->S
@@ -3109,16 +3109,16 @@ global_load:
     je global_load_done         # and be done
 
     # Otherwise we are loading the contents
-    lea rax, [rip+global_load_string_2] # Using "mov_rax,[rax]\n"
+    lea rax, [rip+global_load_string_2] # Using "mov_eax,[eax]\n"
     call emit_out               # Emit it
 
 global_load_done:
     pop rbx                     # Restore RBX
     ret
 
-global_load_string_0: .asciz "lea_rax,[rip+DWORD] %GLOBAL_"
+global_load_string_0: .asciz "mov_eax, &GLOBAL_"
 global_load_string_1: .byte 10, 0
-global_load_string_2: .asciz "mov_rax,[rax]\n"
+global_load_string_2: .asciz "mov_eax,[eax]\n"
 
 
 # sym_lookup function
@@ -3154,7 +3154,7 @@ sym_lookup_done:
 # Returns nothing
 # Simply uses current global token to update output and then steps to next global_token
 primary_expr_number:
-    lea rax, [rip+primary_expr_number_string_0] # Using "mov_rax, %"
+    lea rax, [rip+primary_expr_number_string_0] # Using "mov_eax, %"
     call emit_out               # Emit it
 
     mov rax, [rip+global_token] # Using global_token
@@ -3169,7 +3169,7 @@ primary_expr_number:
     mov [rip+global_token], rax # global_token = global_token->NEXT
     ret
 
-primary_expr_number_string_0: .asciz "mov_rax, %"
+primary_expr_number_string_0: .asciz "mov_eax, %"
 primary_expr_number_string_1: .byte 10, 0
 
 
@@ -3189,7 +3189,7 @@ primary_expr_string:
     add rbx, 1                  # current_count + 1
     mov [rip+current_count], rbx # current_count = current_count + 1
 
-    lea rax, [rip+primary_expr_string_string_0] # Using "lea_rax,[rip+DWORD] %STRING_"
+    lea rax, [rip+primary_expr_string_string_0] # Using "mov_eax, &STRING_"
     call emit_out               # Emit it
 
     mov rax, [rip+function]     # Using function
@@ -3223,7 +3223,7 @@ primary_expr_string:
     pop rbx                     # Restore RBX
     ret
 
-primary_expr_string_string_0: .asciz "lea_rax,[rip+DWORD] %STRING_"
+primary_expr_string_string_0: .asciz "mov_eax, &STRING_"
 primary_expr_string_string_1: .asciz ":STRING_"
 
 
@@ -3234,7 +3234,7 @@ primary_expr_string_string_1: .asciz ":STRING_"
 primary_expr_char:
     push rbx                    # Protect RBX
     push rcx                    # Protect RCX
-    lea rax, [rip+primary_expr_char_string_0] # Using "mov_rax, %"
+    lea rax, [rip+primary_expr_char_string_0] # Using "mov_eax, %"
     call emit_out               # Emit it
 
     mov rax, [rip+global_token] # Using global token
@@ -3254,7 +3254,7 @@ primary_expr_char:
     pop rbx                     # Restore RBX
     ret
 
-primary_expr_char_string_0: .asciz "mov_rax, %"
+primary_expr_char_string_0: .asciz "mov_eax, %"
 primary_expr_char_string_1: .byte 10, 0
 
 
@@ -3378,7 +3378,7 @@ promote_type_done:
 common_recursion:
     push rbx                    # Protect RBX
     mov rbx, rax                # Put FUNCTION F safely out of the way
-    lea rax, [rip+common_recursion_string_0] # Using "push_rax\t#_common_recursion\n"
+    lea rax, [rip+common_recursion_string_0] # Using "push_eax\t#_common_recursion\n"
     call emit_out               # Emit it
 
     mov rax, [rip+global_token] # Using global_token
@@ -3392,13 +3392,13 @@ common_recursion:
     call promote_type           # get the right type
     mov [rip+current_target], rax # Set new current_target
 
-    lea rax, [rip+common_recursion_string_1] # Using "pop_rbx\t# _common_recursion\n"
+    lea rax, [rip+common_recursion_string_1] # Using "pop_ebx\t# _common_recursion\n"
     call emit_out               # Emit it
     pop rbx                     # Restore RBX
     ret
 
-common_recursion_string_0: .asciz "push_rax\t#_common_recursion\n"
-common_recursion_string_1: .asciz "pop_rbx\t# _common_recursion\n"
+common_recursion_string_0: .asciz "push_eax\t#_common_recursion\n"
+common_recursion_string_1: .asciz "pop_ebx\t# _common_recursion\n"
 
 
 # require_match function
@@ -4004,7 +4004,7 @@ create_struct:
     mov rax, [rax]              # global_token->NEXT
     mov [rip+global_token], rax # global_token = global_token->NEXT
 
-    mov rax, 8                  # Using register size
+    mov rax, 4                  # Using register size
     mov [rbp+8], rax            # I->SIZE = register size
 
     lea rax, [rip+create_struct_string_0] # Using "ERROR in create_struct\n Missing {\n"
@@ -4635,7 +4635,7 @@ underline: .asciz "_"
 prim_types:
 type_void:
     .quad type_int - type_void           # NEXT
-    .quad 8                              # SIZE
+    .quad 4                              # SIZE
     .quad 0                              # OFFSET
     .quad type_void - type_void          # INDIRECT
     .quad 0                              # MEMBERS
@@ -4644,7 +4644,7 @@ type_void:
 
 type_int:
     .quad type_char - type_int           # NEXT
-    .quad 8                              # SIZE
+    .quad 4                              # SIZE
     .quad 0                              # OFFSET
     .quad type_int - type_int            # INDIRECT
     .quad 0                              # MEMBERS
@@ -4662,7 +4662,7 @@ type_char:
 
 type_char_indirect:
     .quad type_file - type_char_indirect                 # NEXT
-    .quad 8                                              # SIZE
+    .quad 4                                              # SIZE
     .quad 0                                              # OFFSET
     .quad type_char_double_indirect - type_char_indirect # INDIRECT
     .quad 0                                              # MEMBERS
@@ -4671,7 +4671,7 @@ type_char_indirect:
 
 type_char_double_indirect:
     .quad type_file - type_char_double_indirect                      # NEXT
-    .quad 8                                                          # SIZE
+    .quad 4                                                          # SIZE
     .quad 0                                                          # OFFSET
     .quad type_char_double_indirect - type_char_double_indirect      # INDIRECT
     .quad 0                                                          # MEMBERS
@@ -4680,7 +4680,7 @@ type_char_double_indirect:
 
 type_file:
     .quad type_function - type_file          # NEXT
-    .quad 8                                  # SIZE
+    .quad 4                                  # SIZE
     .quad 0                                  # OFFSET
     .quad type_file - type_file              # INDIRECT
     .quad 0                                  # MEMBERS
@@ -4689,7 +4689,7 @@ type_file:
 
 type_function:
     .quad type_unsigned - type_function      # NEXT
-    .quad 8                                  # SIZE
+    .quad 4                                  # SIZE
     .quad 0                                  # OFFSET
     .quad type_function - type_function      # INDIRECT
     .quad 0                                  # MEMBERS
@@ -4698,7 +4698,7 @@ type_function:
 
 type_unsigned:
     .quad type_long - type_unsigned          # NEXT
-    .quad 8                                  # SIZE
+    .quad 4                                  # SIZE
     .quad 0                                  # OFFSET
     .quad type_unsigned - type_unsigned      # INDIRECT
     .quad 0                                  # MEMBERS
@@ -4707,7 +4707,7 @@ type_unsigned:
 
 type_long:
     .quad 0                                  # NEXT
-    .quad 8                                  # SIZE
+    .quad 4                                  # SIZE
     .quad 0                                  # OFFSET
     .quad type_long - type_long              # INDIRECT
     .quad 0                                  # MEMBERS
