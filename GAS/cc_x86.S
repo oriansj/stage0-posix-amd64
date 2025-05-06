@@ -939,7 +939,7 @@ collect_arguments_loop:
     cmp rax, 0                  # is a foo(int, char,void) case
     je collect_arguments_common # deal with commas
 
-	# Trying second else
+    # Trying second else
     mov rbx, [rip+global_token] # Using global_token
     mov rbx, [rbx+16]           # global_token->S
     lea rax, [rip+comma]        # ","
