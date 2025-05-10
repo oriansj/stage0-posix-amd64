@@ -469,7 +469,7 @@ DEFINE NULL 0000000000000000
     jne %get_token_done          # keep if just '/'
 
     # Deal with // line comment
-    call %purge_macro            # Ignore everything until newline
+    call %purge_macro            # discard all until newline
     mov_[rip+DWORD],rax %C       # Set C
     jmp %reset                   # throw away, try again
 
