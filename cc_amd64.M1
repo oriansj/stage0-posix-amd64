@@ -4622,33 +4622,10 @@ mov_rax,[rax]
     cmp_rax, %125                             # IF global_token->S[0] == "}"
     je %create_struct_done                    # be done
 
-    # Looks like we are adding members
-    # Lets see if it is a union
-    mov_rax,[rip+DWORD] %global_token         # Using global_token
-    mov_rax,[rax+BYTE] !16                    # global_token->S
-    lea_rbx,[rip+DWORD] %union                # Using "union"
-    call %match                               # IF match(global_token->s, "union")
-    cmp_rax, %0                               # Deal with union
-    jne %create_struct_single                 # Otherwise deal with singles
-
-    # Deal with union
-    mov_rax,rsi                               # Put last in right place
-    mov_rbx,rcx                               # put offset in right place
-    call %build_union                         # ASSEMBLE
-    mov_rsi,rax                               # last = build_union(last, offset)
-    add_rcx,rdi                               # offset = offset + member_size
-
-    lea_rax,[rip+DWORD] %create_struct_string_1 # Using "ERROR in create_struct\n Missing ;\n"
-    lea_rbx,[rip+DWORD] %semicolon            # Using ";"
-    call %require_match                       # Make sure we have it
-    jmp %create_struct_iter                   # keep going
-
-:create_struct_single
-    # deal with singles
     mov_rax,rsi                               # Put last in right place
     mov_rbx,rcx                               # put offset in right place
     call %build_member                        # ASSEMBLE
-    mov_rsi,rax                               # last = build_union(last, offset)
+    mov_rsi,rax                               # last = build_member(last, offset)
     add_rcx,rdi                               # offset = offset + member_size
 
     lea_rax,[rip+DWORD] %create_struct_string_1 # Using "ERROR in create_struct\n Missing ;\n"
@@ -4820,79 +4797,6 @@ mov_rax,[rax]
 
 :build_member_string_0
 "Struct only supports [num] form
-"
-
-
-# build_union function
-# Receives struct type* last in RAX, int offset in RBX and global member_size in RDI
-# Updates member_size in RDI and returns struct type* LAST in RAX
-# Uses RCX for struct type* last, RDX for int offset, RSI for int size and RDI for int member_size
-:build_union
-    push_rbx                                  # Protect RBX
-    push_rcx                                  # Protect RCX
-    push_rdx                                  # Protect RDX
-    push_rsi                                  # Protect RSI
-    mov_rcx,rax                               # Put LAST in right spot
-    mov_rdx,rbx                               # Put OFFSET in right spot
-    mov_rsi, %0                               # SIZE = 0
-
-    mov_rax,[rip+DWORD] %global_token         # Using global_token
-    mov_rax,[rax]                             # global_token->NEXT
-    mov_[rip+DWORD],rax %global_token         # global_token = global_token->NEXT
-
-    lea_rax,[rip+DWORD] %build_union_string_0 # Using "ERROR in build_union\nMissing {\n"
-    lea_rbx,[rip+DWORD] %open_curly_brace     # Using "{"
-    call %require_match                       # Make sure we have it
-
-:build_union_iter
-    mov_rax,[rip+DWORD] %global_token         # Using global_token
-    mov_rax,[rax+BYTE] !16                    # global_token->S
-    mov_al,[rax]                              # global_token->S[0]
-    movzx_rax,al                              # make it useful
-    cmp_rax, %125                             # IF global_token->S[0] == "}"
-    je %build_union_done                      # Be done
-
-    # Collect union member
-    mov_rax,rcx                               # Passing LAST
-    mov_rbx,rdx                               # Passing offset
-    call %build_member                        # build_member(last, offset)
-    mov_rcx,rax                               # last = build_member(last, offset)
-
-    cmp_rsi,rdi                               # IF member_size > size
-    jg %build_union_size                      # Then update size
-
-    # deal with member_size > size
-    mov_rsi,rdi                               # SIZE = MEMBER_SIZE
-
-:build_union_size
-    lea_rax,[rip+DWORD] %build_union_string_1 # Using "ERROR in build_union\nMissing ;\n"
-    lea_rbx,[rip+DWORD] %semicolon            # Using ";"
-    call %require_match                       # Make sure we have it
-    jmp %build_union_iter                     # Keep going
-
-:build_union_done
-    mov_rdi,rsi                               # MEMBER_SIZE = SIZE
-
-    mov_rax,[rip+DWORD] %global_token         # Using global_token
-    mov_rax,[rax]                             # global_token->NEXT
-    mov_[rip+DWORD],rax %global_token         # global_token = global_token->NEXT
-
-    mov_rax,rcx                               # Return last
-
-    pop_rsi                                   # Restore RSI
-    pop_rdx                                   # Restore RDX
-    pop_rcx                                   # Restore RCX
-    pop_rbx                                   # Restore RBX
-    ret
-
-:build_union_string_0
-"ERROR in build_union
-Missing {
-"
-
-:build_union_string_1
-"ERROR in build_union
-Missing ;
 "
 
 
@@ -5221,9 +5125,6 @@ ARGUMENTS address: "
 ">::<NULL>::<"
 
 # Keywords
-:union
-"union"
-
 :struct
 "struct"
 

@@ -3991,33 +3991,10 @@ create_struct_iter:
     cmp rax, 125                # IF global_token->S[0] == "}"
     je create_struct_done       # be done
 
-    # Looks like we are adding members
-    # Lets see if it is a union
-    mov rax, [rip+global_token] # Using global_token
-    mov rax, [rax+16]           # global_token->S
-    lea rbx, [rip+union]        # Using "union"
-    call match                  # IF match(global_token->s, "union")
-    cmp rax, 0                  # Deal with union
-    jne create_struct_single    # Otherwise deal with singles
-
-    # Deal with union
-    mov rax, rsi                # Put last in right place
-    mov rbx, rcx                # put offset in right place
-    call build_union            # ASSEMBLE
-    mov rsi, rax                # last = build_union(last, offset)
-    add rcx, rdi                # offset = offset + member_size
-
-    lea rax, [rip+create_struct_string_1] # Using "ERROR in create_struct\n Missing ;\n"
-    lea rbx, [rip+semicolon]    # Using ";"
-    call require_match          # Make sure we have it
-    jmp create_struct_iter      # keep going
-
-create_struct_single:
-    # deal with singles
     mov rax, rsi                # Put last in right place
     mov rbx, rcx                # put offset in right place
     call build_member           # ASSEMBLE
-    mov rsi, rax                # last = build_union(last, offset)
+    mov rsi, rax                # last = build_member(last, offset)
     add rcx, rdi                # offset = offset + member_size
 
     lea rax, [rip+create_struct_string_1] # Using "ERROR in create_struct\n Missing ;\n"
@@ -4174,72 +4151,6 @@ build_member_done:
     ret
 
 build_member_string_0: .asciz "Struct only supports [num] form\n"
-
-
-# build_union function
-# Receives struct type* last in RAX, int offset in RBX and global member_size in RDI
-# Updates member_size in RDI and returns struct type* LAST in RAX
-# Uses RCX for struct type* last, RDX for int offset, RSI for int size and RDI for int member_size
-build_union:
-    push rbx                    # Protect RBX
-    push rcx                    # Protect RCX
-    push rdx                    # Protect RDX
-    push rsi                    # Protect RSI
-    mov rcx, rax                # Put LAST in right spot
-    mov rdx, rbx                # Put OFFSET in right spot
-    mov rsi, 0                  # SIZE = 0
-
-    mov rax, [rip+global_token] # Using global_token
-    mov rax, [rax]              # global_token->NEXT
-    mov [rip+global_token], rax # global_token = global_token->NEXT
-
-    lea rax, [rip+build_union_string_0] # Using "ERROR in build_union\nMissing {\n"
-    lea rbx, [rip+open_curly_brace] # Using "{"
-    call require_match          # Make sure we have it
-
-build_union_iter:
-    mov rax, [rip+global_token] # Using global_token
-    mov rax, [rax+16]           # global_token->S
-    mov al, [rax]               # global_token->S[0]
-    movzx rax, al               # make it useful
-    cmp rax, 125                # IF global_token->S[0] == "}"
-    je build_union_done         # Be done
-
-    # Collect union member
-    mov rax, rcx                # Passing LAST
-    mov rbx, rdx                # Passing offset
-    call build_member           # build_member(last, offset)
-    mov rcx, rax                # last = build_member(last, offset)
-
-    cmp rsi, rdi                # IF member_size > size
-    jg build_union_size         # Then update size
-
-    # deal with member_size > size
-    mov rsi, rdi                # SIZE = MEMBER_SIZE
-
-build_union_size:
-    lea rax, [rip+build_union_string_1] # Using "ERROR in build_union\nMissing ;\n"
-    lea rbx, [rip+semicolon]    # Using ";"
-    call require_match          # Make sure we have it
-    jmp build_union_iter        # Keep going
-
-build_union_done:
-    mov rdi, rsi                # MEMBER_SIZE = SIZE
-
-    mov rax, [rip+global_token] # Using global_token
-    mov rax, [rax]              # global_token->NEXT
-    mov [rip+global_token], rax # global_token = global_token->NEXT
-
-    mov rax, rcx                # Return last
-
-    pop rsi                     # Restore RSI
-    pop rdx                     # Restore RDX
-    pop rcx                     # Restore RCX
-    pop rbx                     # Restore RBX
-    ret
-
-build_union_string_0: .asciz "ERROR in build_union\nMissing {\n"
-build_union_string_1: .asciz "ERROR in build_union\nMissing ;\n"
 
 
 # sym_declare function
@@ -4547,7 +4458,6 @@ debug_list_string6: .asciz "\nARGUMENTS address: "
 debug_list_string_null: .asciz ">::<NULL>::<"
 
 # Keywords
-union: .asciz "union"
 struct: .asciz "struct"
 enum: .asciz "enum"
 main_string: .asciz "main"
