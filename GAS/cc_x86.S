@@ -669,7 +669,7 @@ new_type:
     lea rax, [rip+enum]         # "enum"
     call match                  # IF GLOBAL_TOKEN->S == "enum"
     cmp rax, 0                  # If true
-    jne constant_value          # Looks like not an enum
+    jne program_else            # Looks like not an enum
 
     # Deal with minimal anonymous enums
     mov rax, [rip+global_token]           # Using global_token
@@ -733,36 +733,6 @@ enum_end:
     call require_match                    # Require match and skip
 
     jmp new_type                          # go around again
-
-constant_value:
-    mov rax, [rip+global_token] # Using global_token
-    cmp rax, 0                  # Check if NULL
-    je program_done             # Be done if null
-
-    mov rbx, [rax+16]           # GLOBAL_TOKEN->S
-    lea rax, [rip+constant]     # "CONSTANT"
-    call match                  # IF GLOBAL_TOKEN->S == "CONSTANT"
-    cmp rax, 0                  # If true
-    jne program_else            # Looks like not a constant
-
-    # Deal with minimal constant case
-    mov rax, [rip+global_token] # Using global_token
-    mov rax, [rax]              # global_token->next
-    mov [rip+global_token], rax # global_token = global_token->next
-
-    mov rax, [rax+16]           # global_token->S
-    mov rbx, 0                  # NULL
-    mov rcx, [rip+global_constant_list] # global_constant_list
-    call sym_declare            # Declare that constant
-    mov [rip+global_constant_list], rax # global_constant_list = sym_declare(global_token->s, NULL, global_constant_list);
-
-    mov rbx, [rip+global_token] # Using global_token
-    mov rbx, [rbx]              # global_token->next
-    mov [rax+32], rbx           # global_constant_list->arguments = global_token->next
-
-    mov rbx, [rbx]              # global_token->next->next
-    mov [rip+global_token], rbx # global_token = global_token->next->next;
-    jmp new_type                # go around again
 
 program_else:
     call type_name              # Figure out the type_size
@@ -4580,7 +4550,6 @@ debug_list_string_null: .asciz ">::<NULL>::<"
 union: .asciz "union"
 struct: .asciz "struct"
 enum: .asciz "enum"
-constant: .asciz "CONSTANT"
 main_string: .asciz "main"
 argc_string: .asciz "argc"
 argv_string: .asciz "argv"
