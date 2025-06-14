@@ -2152,37 +2152,37 @@ relational_expr_stub:
     push rdx                    # Protect RDX
 
     lea rax, [rip+additive_expr] # Using additive_expr
-    lea rbx, [rip+relational_expr_stub_string_0] # Using "cmp\nsetl_al\nmovzx_eax,al\n"
+    lea rbx, [rip+relational_expr_stub_string_0] # Using "cmp_ebx,eax\nsetl_al\nmovzx_eax,al\n"
     lea rcx, [rip+less_than_string] # Using "<"
     lea rdx, [rip+relational_expr_stub] # And recurse
     call general_recursion      # Hit it
 
     lea rax, [rip+additive_expr] # Using additive_expr
-    lea rbx, [rip+relational_expr_stub_string_1] # Using "cmp\nsetle_al\nmovzx_eax,al\n"
+    lea rbx, [rip+relational_expr_stub_string_1] # Using "cmp_ebx,eax\nsetle_al\nmovzx_eax,al\n"
     lea rcx, [rip+less_than_equal_string] # Using "<="
     lea rdx, [rip+relational_expr_stub] # And recurse
     call general_recursion      # Hit it
 
     lea rax, [rip+additive_expr] # Using additive_expr
-    lea rbx, [rip+relational_expr_stub_string_2] # Using "cmp\nsetge_al\nmovzx_eax,al\n"
+    lea rbx, [rip+relational_expr_stub_string_2] # Using "cmp_ebx,eax\nsetge_al\nmovzx_eax,al\n"
     lea rcx, [rip+greater_than_equal_string] # Using ">="
     lea rdx, [rip+relational_expr_stub] # And recurse
     call general_recursion      # Hit it
 
     lea rax, [rip+additive_expr] # Using additive_expr
-    lea rbx, [rip+relational_expr_stub_string_3] # Using "cmp\nsetg_al\nmovzx_eax,al\n"
+    lea rbx, [rip+relational_expr_stub_string_3] # Using "cmp_ebx,eax\nsetg_al\nmovzx_eax,al\n"
     lea rcx, [rip+greater_than_string] # Using ">"
     lea rdx, [rip+relational_expr_stub] # And recurse
     call general_recursion      # Hit it
 
     lea rax, [rip+additive_expr] # Using additive_expr
-    lea rbx, [rip+relational_expr_stub_string_4] # Using "cmp\nsete_al\nmovzx_eax,al\n"
+    lea rbx, [rip+relational_expr_stub_string_4] # Using "cmp_ebx,eax\nsete_al\nmovzx_eax,al\n"
     lea rcx, [rip+equal_to_string] # Using "=="
     lea rdx, [rip+relational_expr_stub] # And recurse
     call general_recursion      # Hit it
 
     lea rax, [rip+additive_expr] # Using additive_expr
-    lea rbx, [rip+relational_expr_stub_string_5] # Using "cmp\nsetne_al\nmovzx_eax,al\n"
+    lea rbx, [rip+relational_expr_stub_string_5] # Using "cmp_ebx,eax\nsetne_al\nmovzx_eax,al\n"
     lea rcx, [rip+not_equal_string] # Using "!="
     lea rdx, [rip+relational_expr_stub] # And recurse
     call general_recursion      # Hit it
@@ -2192,12 +2192,12 @@ relational_expr_stub:
     pop rbx                     # Restore RBX
     ret
 
-relational_expr_stub_string_0: .asciz "cmp\nsetl_al\nmovzx_eax,al\n"
-relational_expr_stub_string_1: .asciz "cmp\nsetle_al\nmovzx_eax,al\n"
-relational_expr_stub_string_2: .asciz "cmp\nsetge_al\nmovzx_eax,al\n"
-relational_expr_stub_string_3: .asciz "cmp\nsetg_al\nmovzx_eax,al\n"
-relational_expr_stub_string_4: .asciz "cmp\nsete_al\nmovzx_eax,al\n"
-relational_expr_stub_string_5: .asciz "cmp\nsetne_al\nmovzx_eax,al\n"
+relational_expr_stub_string_0: .asciz "cmp_ebx,eax\nsetl_al\nmovzx_eax,al\n"
+relational_expr_stub_string_1: .asciz "cmp_ebx,eax\nsetle_al\nmovzx_eax,al\n"
+relational_expr_stub_string_2: .asciz "cmp_ebx,eax\nsetge_al\nmovzx_eax,al\n"
+relational_expr_stub_string_3: .asciz "cmp_ebx,eax\nsetg_al\nmovzx_eax,al\n"
+relational_expr_stub_string_4: .asciz "cmp_ebx,eax\nsete_al\nmovzx_eax,al\n"
+relational_expr_stub_string_5: .asciz "cmp_ebx,eax\nsetne_al\nmovzx_eax,al\n"
 
 
 # additive_expr function
@@ -2594,7 +2594,7 @@ primary_expr_not:
     lea rax, [rip+postfix_expr] # Passing postfix_expr
     call common_recursion       # Get what it is notting
 
-    lea rax, [rip+primary_expr_string_3] # Using "xor_eax,ebx\n"
+    lea rax, [rip+primary_expr_string_3] # Using "cmp_eax,ebx\nseta_al\nmovzx_eax,al\n"
     call emit_out               # Emit it
     jmp primary_expr_done       # Be done
 
@@ -2694,7 +2694,7 @@ primary_expr_done:
 primary_expr_string_0: .asciz "mov_eax, %0\n"
 primary_expr_string_1: .asciz "sub_ebx,eax\nmov_eax,ebx\n"
 primary_expr_string_2: .asciz "mov_eax, %1\n"
-primary_expr_string_3: .asciz "xor_eax,ebx\n"
+primary_expr_string_3: .asciz "cmp_eax,ebx\nseta_al\nmovzx_eax,al\n"
 primary_expr_string_4: .asciz "not_eax\n"
 primary_expr_string_5: .asciz "Error in Primary expression\nDidn't get )\n"
 primary_expr_string_6: .asciz "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"

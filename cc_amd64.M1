@@ -3094,7 +3094,7 @@ add_rax,rbx
     lea_rax,[rip+DWORD] %postfix_expr         # Passing postfix_expr
     call %common_recursion                    # Get what it is notting
 
-    lea_rax,[rip+DWORD] %primary_expr_string_3 # Using "xor_rax,rbx\n"
+    lea_rax,[rip+DWORD] %primary_expr_string_3 # Using "cmp_rbx,rax\nseta_al\nmovzx_rax,al\n"
     call %emit_out                            # Emit it
     jmp %primary_expr_done                    # Be done
 
@@ -3205,7 +3205,9 @@ mov_rax,rbx
 "
 
 :primary_expr_string_3
-"xor_rax,rbx
+"cmp_rbx,rax
+seta_al
+movzx_rax,al
 "
 
 :primary_expr_string_4
