@@ -69,6 +69,7 @@
 #########################################
 ./AMD64/artifact/catm ./AMD64/artifact/M2-0.c \
 	./M2libc/amd64/linux/bootstrap.c \
+	./M2libc/bootstrap.c \
 	./M2-Planet/cc.h \
 	./M2libc/bootstrappable.c \
 	./M2-Planet/cc_globals.c \
@@ -90,6 +91,7 @@
 #############################################
 ./AMD64/artifact/M2 --architecture amd64 \
 	-f ./M2libc/amd64/linux/bootstrap.c \
+	-f ./M2libc/bootstrap.c \
 	-f ./M2libc/bootstrappable.c \
 	-f ./mescc-tools/stringify.c \
 	-f ./mescc-tools/blood-elf.c \
@@ -108,6 +110,7 @@
 #####################################
 ./AMD64/artifact/M2 --architecture amd64 \
 	-f ./M2libc/amd64/linux/bootstrap.c \
+	-f ./M2libc/bootstrap.c \
 	-f ./M2libc/bootstrappable.c \
 	-f ./mescc-tools/stringify.c \
 	-f ./mescc-tools/M1-macro.c \
