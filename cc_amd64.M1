@@ -702,6 +702,8 @@ DEFINE NULL 0000000000000000
     mov_rbx,[rip+DWORD] %string_index # S[0]
     mov_[rbx],al                 # S[0] = C
     add_rbx, %1                  # S = S + 1
+    mov_rax, %0                  # NULL terminate S
+    mov_[rbx],al                 # S[0] = NULL
     mov_[rip+DWORD],rbx %string_index # Update S
     call %fgetc
     pop_rbx                      # Restore RBX

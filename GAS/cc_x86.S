@@ -500,6 +500,8 @@ consume_byte:
     mov rbx, [rip+string_index] # S[0]
     mov [rbx], al               # S[0] = C
     add rbx, 1                  # S = S + 1
+    mov rax, 0                  # NULL terminate S
+    mov [rbx], al               # S[0] = NULL
     mov [rip+string_index], rbx # Update S
     call fgetc
     pop rbx                     # Restore RBX
