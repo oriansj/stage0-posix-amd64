@@ -79,6 +79,8 @@
 	48C7C2 00000000             ; mov_rdx, %0                 # prevent any interactions
 	48C7C0 02000000             ; mov_rax, %2                 # the syscall number for open()
 	0F05                        ; syscall                     # Now open that damn file
+	4885C0                      ; test_rax,rax                # Check if the open failed
+	0F88 %fail                  ; js %fail                    # A negative result means error
 	4989C5                      ; mov_r13,rax                 # Protect INPUT
 :keep
 	48C7C2 00001000             ; mov_rdx, %0x100000          # set the size of chars we want
@@ -86,6 +88,8 @@
 	4C89EF                      ; mov_rdi,r13                 # Where are we reading from
 	48C7C0 00000000             ; mov_rax, %0                 # the syscall number for read
 	0F05                        ; syscall                     # call the Kernel
+	4885C0                      ; test_rax,rax                # Check if the read failed
+	0F88 %fail                  ; js %fail                    # A negative result means error
 	50                          ; push_rax                    # Protect the number of bytes read
 
 	4889C2                      ; mov_rdx,rax                 # Number of bytes to write
@@ -98,6 +102,12 @@
 	483D 00001000               ; cmp_rax, %0x100000          # Check if buffer was fully used
 	0F84 %keep                  ; je %keep                    # Keep looping if was full
 	E9 %core                    ; jmp %core                   # Otherwise move to next file
+
+:fail
+	# an input file could not be read
+	48C7C7 01000000             ; mov_rdi, %1                 # All is not well
+	48C7C0 3C000000             ; mov_rax, %0x3C              # put the exit syscall number in eax
+	0F05                        ; syscall                     # Call it a bad day
 
 :done
 	# program completed Successfully

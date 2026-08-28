@@ -44,6 +44,8 @@ core:
     mov rdx, 0                  # prevent any interactions
     mov rax, 2                  # the syscall number for open()
     syscall                     # Now open that damn file
+    test rax, rax               # Check if the open failed
+    js fail                     # A negative result means error
     mov r13, rax                # Protect INPUT
 keep:
     mov rdx, 0x100000           # set the size of chars we want
@@ -51,6 +53,8 @@ keep:
     mov rdi, r13                # Where are we reading from
     mov rax, 0                  # the syscall number for read
     syscall                     # call the Kernel
+    test rax, rax               # Check if the read failed
+    js fail                     # A negative result means error
     push rax                    # Protect the number of bytes read
 
     mov rdx, rax                # Number of bytes to write
@@ -63,6 +67,12 @@ keep:
     cmp rax, 0x100000           # Check if buffer was fully used
     je keep                     # Keep looping if was full
     jmp core                    # Otherwise move to next file
+
+fail:
+    # an input file could not be read
+    mov rdi, 1                  # All is not well
+    mov rax, 0x3c               # put the exit syscall number in eax
+    syscall                     # Call it a bad day
 
 done:
     # program completed Successfully
