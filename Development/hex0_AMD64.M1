@@ -39,7 +39,7 @@ DEFINE shl_ebp, C1E5
 DEFINE sub_al, 2C
 DEFINE syscall 0F05
 DEFINE test_eax,eax 85C0
-DEFINE test_ecx,ecx 85C9
+DEFINE or_eax,ecx 09C8
 DEFINE xor_eax,eax 31C0
 DEFINE xor_edi,edi 31FF
 DEFINE xchg_ebx,eax 93
@@ -105,8 +105,7 @@ DEFINE xor_esi,esi 31F6
 	je !loop_reset_comment      # If new-line, end comment handling
 
 	# In comment check
-	test_ecx,ecx                # Skip byte if we are in a comment
-	jne !loop
+	or_eax,ecx                  # Skip byte if we are in a comment
 
 	# Start comment check
 	cmp_al, !35                 # Start of '#' comment
