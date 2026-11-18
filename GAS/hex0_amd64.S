@@ -11,7 +11,7 @@
 # Simply jump to _start
 # Our main function
 _start:
-	pop rax                     # Get the number of arguments
+	pop rbp                     # Get the number of arguments
 	pop rdi                     # Get the program name
 	pop rdi                     # Get the actual input name
 	xor esi, esi                # prepare read_only, rsi = 0
@@ -29,9 +29,6 @@ _start:
 	xchg ebx, eax               # Preserve the file pointer we were given
 	cdq                         # rdx = 0 since file descriptor is nonnegative
 	inc edx                     # rdx = 1 (count for read/write)
-
-loop_reset_all:
-	xor ebp, ebp                # ebp = 0 (no prior hex val)
 
 # Comment tracking is done with ecx.
 # ecx is decremented if we hit a
@@ -70,8 +67,7 @@ cont:
 	je loop_reset_comment       # If new-line, end comment handling
 
 	# In comment check
-	test ecx, ecx               # Skip byte if we are in a comment
-	jne loop
+	or eax, ecx                 # Skip byte if we are in a comment
 
 	# Start comment check
 	cmp al, 35                  # Start of '#' comment
@@ -104,5 +100,5 @@ write:
 	mov edi, ebx                # Move outfile to rdi
 	mov al, 1                   # Set write syscall in rax
 	syscall                     # Do the write
-	jmp loop_reset_all          # Start a fresh byte
+	jmp loop_reset_comment      # Start a fresh byte
 ELF_end:
